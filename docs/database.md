@@ -73,4 +73,8 @@ Secretの実値、値を設定済みのManifest、接続URLをリポジトリへ
 - ER図
 - テーブルとカラムの定義
 - インデックスと制約
+- Productionで稼働中のRevisionからリリース対象Revisionまでを、既存データを含む状態でCI検証する方法
+- 検証中に作成したProduction未適用のRevisionを、リリース前に統合または作り直す基準と、確定したMigration経路の再検証方法
+- Applicationの新旧VersionとSchemaの互換性を維持する期間、および破壊的変更を適用できる条件
+- Schema変更ごとに、Applicationの切り戻し、Schemaの可逆性、データの復元方法、前方修正の手順を評価する方法
 - バックアップとリストア

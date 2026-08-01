@@ -30,8 +30,11 @@ Secretの値はリポジトリ内のManifestへ記載せず、デプロイ前に
 
 ## 未決定事項
 
-- リリース手順
+- Git Commit、Application Image Digest、AlembicのTarget Revisionを同じリリースとして固定し、検証済みの成果物をProductionへ昇格する方法
+- Migration Jobの起動主体、承認、排他制御、Timeout、再実行、および後続Workloadを更新するまでのリリース手順
+- Production DatabaseのCurrent Revisionが想定と異なる場合にMigrationとデプロイを中止する仕組み
+- 稼働中の旧ApplicationとMigration後のSchemaが共存する期間のデプロイ順序、および互換性を維持できない変更の適用方法
 - CronJobの実行間隔と完了したJobの保持期間
 - ログとモニタリング
-- 障害対応
-- ロールバック手順
+- Migration失敗時に書き込み停止、再実行、前方修正、Backupからの復元を選択する基準と障害対応手順
+- リリースごとにApplicationとDatabaseの切り戻し可能範囲、切り戻し不能になる時点、復旧手順を策定して検証する方法
