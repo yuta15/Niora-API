@@ -59,6 +59,18 @@ Infrastructure Adapterは、Adapterが接続する外部サービスを基準に
 - Adapterが外部サービスのデータとDomain/Applicationの型を正しく変換できることを確認する
 - 外部サービスのエラーを、Applicationが扱うエラーへ正しく変換できることを確認する
 
+MySQL AdapterのIntegrationテストでは、デプロイ対象と同じGA Patch Versionへ固定したMySQL 9.7 LTSの公式Container Imageを
+Docker Composeで起動します。SQLiteやDBAPIのMockでは代替しません。
+
+- Healthcheckが成功してからMigrationとテストを開始する
+- ローカルとCIで同じCompose定義を使用する
+- MySQL ContainerはテストSession内で共有し、テストごとに一意なDatabaseを作成する
+- 各Databaseへ`alembic upgrade head`を適用してからAdapterを検証する
+- テスト終了時にDatabase、Suite終了時にContainerとVolumeを、成否にかかわらず削除する
+- Database作成用の管理AccountはIntegrationテストだけで使用し、Applicationの接続には使用しない
+
+起動と実行の標準手順は[ローカル開発ガイド](development.md#database操作)を参照してください。
+
 テストデータとk3sリソースはテストごとに分離し、成功・失敗にかかわらず後始末します。外部インターネット上の不特定なサービスには依存せず、管理できるテスト用サービスを使用します。
 
 ### E2Eテスト
@@ -101,6 +113,8 @@ Fixture名は生成方法ではなく、テストから見た役割を表す名�
 - WebSocketや外部サービスを待つ処理にはTimeoutを設ける
 - テストの成否を実行順序や別テストのデータへ依存させない
 - MySQLのスキーマとk3sのバージョンは、デプロイ対象と互換性のあるバージョンへ固定する
+- MySQL AdapterのTransactionを検証するテストでは、テスト全体を外側のTransactionで囲んでrollbackする方法に依存せず、
+  commitとrollbackを実際に実行して別の接続から結果を確認する
 
 ## ディレクトリ構成
 

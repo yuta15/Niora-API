@@ -89,7 +89,7 @@ API AdapterにはFastAPIを使用します。APIのバージョン、ドメイ�
 
 ## データ
 
-教科書、章、WorkspaceDefinitionなどの永続データにはMySQL 9.7 LTSを使用します。各モジュールは同じデータベースを利用し、データの所有境界を分けます。詳細は[ADR 0005](adr/0005-use-mysql-9.7-lts.md)を参照してください。
+教科書、章、WorkspaceDefinitionなどの永続データにはMySQL 9.7 LTSを使用します。各モジュールは同じデータベースを利用し、データの所有境界を分けます。Database SchemaはSQLModelで定義し、PyMySQLを使用する各モジュールのAdapterから接続します。Transaction境界はUseCaseが担い、1回のUseCase実行を1つのUnit of Workとします。DomainとApplicationはMySQL、SQLModel、SQLAlchemyへ依存しません。データベースの選定は[ADR 0005](adr/0005-use-mysql-9.7-lts.md)、接続、Transaction、Migrationの方式は[ADR 0008](adr/0008-use-sqlmodel-pymysql-and-alembic.md)を参照してください。
 
 Workspaceの実行状態はデータベースへ保存せず、k3s上のリソースを正とします。
 
