@@ -2,8 +2,7 @@ from uuid import UUID
 
 import pytest
 
-from src.textbook.domain.entities.chapter import Chapter
-from src.textbook.domain.entities.value_objects import ChapterPosition, ContentString, TitleString
+from src.textbook.domain.entities import Chapter, ChapterPosition, ContentString, TitleString
 
 CHAPTER_ID = UUID("35e2a8e4-b60c-412a-9406-ce999b15fcd3")
 OTHER_CHAPTER_ID = UUID("8498bf44-f8f8-42e8-bdb6-5f60b2b51b7c")

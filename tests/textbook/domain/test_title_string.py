@@ -2,7 +2,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from src.textbook.domain.entities.value_objects import TitleString
+from src.textbook.domain.entities import TitleString
 
 
 def test_title_string_success_removes_surrounding_whitespace() -> None:

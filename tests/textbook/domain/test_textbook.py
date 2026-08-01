@@ -2,8 +2,7 @@ from uuid import UUID
 
 import pytest
 
-from src.textbook.domain.entities.textbook import Textbook
-from src.textbook.domain.entities.value_objects import TitleString
+from src.textbook.domain.entities import Textbook, TitleString
 
 TEXTBOOK_ID = UUID("d9e259cb-c537-451b-b38b-90443f553185")
 OTHER_TEXTBOOK_ID = UUID("38e3ae7b-357f-44ea-b0d8-f8499fc3f132")

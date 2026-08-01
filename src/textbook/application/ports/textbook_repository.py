@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from src.textbook.domain.entities.textbook import Textbook
+from src.textbook.domain.entities import Textbook
 
 
 class TextbookRepository(ABC):
