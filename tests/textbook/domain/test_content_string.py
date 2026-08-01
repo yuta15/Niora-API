@@ -2,7 +2,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from src.textbook.domain.entities.value_objects import ContentString
+from src.textbook.domain.entities import ContentString
 
 
 @pytest.mark.parametrize("value", ["", "本文", "  前後の空白を含む本文  "])

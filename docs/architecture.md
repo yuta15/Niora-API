@@ -84,6 +84,9 @@ flowchart LR
 
 DomainとApplicationは外部技術に依存せず、MySQL、k3s、外部認証、接続方式との差分をAdapterで吸収します。詳細は[ADR 0004](adr/0004-use-clean-architecture.md)を参照してください。
 
+API AdapterにはFastAPIを使用します。APIのバージョン、ドメインrouter、Schema、依存性注入の構成は
+[API実装規約](api.md)に従います。
+
 ## データ
 
 教科書、章、WorkspaceDefinitionなどの永続データにはMySQL 9.7 LTSを使用します。各モジュールは同じデータベースを利用し、データの所有境界を分けます。詳細は[ADR 0005](adr/0005-use-mysql-9.7-lts.md)を参照してください。

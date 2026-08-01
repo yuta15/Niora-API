@@ -2,7 +2,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from src.textbook.domain.entities.value_objects import ChapterPosition
+from src.textbook.domain.entities import ChapterPosition
 
 
 @pytest.mark.parametrize("value", [1, 2])
