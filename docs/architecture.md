@@ -22,13 +22,13 @@ flowchart LR
         end
 
         subgraph WorkspaceNS[ns-niora-workspaces]
-            subgraph WorkspaceA[Workspace A]
-                WorkspaceAUbuntu[Ubuntu Pod]
-                WorkspaceADatabase[Database Pod]
+            subgraph WorkspaceSessionA[WorkspaceSession A]
+                WorkspaceSessionAUbuntu[Ubuntu Pod]
+                WorkspaceSessionADatabase[Database Pod]
             end
 
-            subgraph WorkspaceB[Workspace B]
-                WorkspaceBUbuntu[Ubuntu Pod]
+            subgraph WorkspaceSessionB[WorkspaceSession B]
+                WorkspaceSessionBUbuntu[Ubuntu Pod]
             end
         end
     end
@@ -38,12 +38,12 @@ flowchart LR
     API --> Database
     API -->|作成 / 状態確認 / exec / 削除| K3sAPI
     Cleanup -->|期限確認 / 削除| K3sAPI
-    K3sAPI --> WorkspaceAUbuntu
-    K3sAPI --> WorkspaceADatabase
-    K3sAPI --> WorkspaceBUbuntu
-    WorkspaceAUbuntu --> Internet
-    WorkspaceADatabase --> Internet
-    WorkspaceBUbuntu --> Internet
+    K3sAPI --> WorkspaceSessionAUbuntu
+    K3sAPI --> WorkspaceSessionADatabase
+    K3sAPI --> WorkspaceSessionBUbuntu
+    WorkspaceSessionAUbuntu --> Internet
+    WorkspaceSessionADatabase --> Internet
+    WorkspaceSessionBUbuntu --> Internet
 ```
 
 全体をモジュラーモノリスとして構成し、APIと期限切れ削除Jobは同じコードベースとビルド成果物を利用します。詳細は[ADR 0003](adr/0003-use-modular-monolith.md)を参照してください。
@@ -55,7 +55,7 @@ Niora APIを次のドメインモジュールに分割します。
 | モジュール | 責務 |
 | --- | --- |
 | `Textbook` | 教科書と章 |
-| `Workspace` | WorkspaceDefinition、Workspaceのライフサイクルと接続 |
+| `Workspace` | WorkspaceSessionのライフサイクル、接続権限、接続、実行環境との連携 |
 | `Auth` | 外部認証との連携、利用者、権限 |
 
 `Auth`は全体構成に含めますが、v0.0.1では実装しません。モジュール間は公開されたApplicationインターフェースを通じて連携します。
@@ -84,32 +84,42 @@ flowchart LR
 
 DomainとApplicationは外部技術に依存せず、MySQL、k3s、外部認証、接続方式との差分をAdapterで吸収します。詳細は[ADR 0004](adr/0004-use-clean-architecture.md)を参照してください。
 
+Workspace Domainは、期限付きの学習環境をWorkspaceSessionとして扱います。ApplicationはWorkspacePresetKeyを指定して
+実行環境の操作を要求し、Adapterがプリセットの詳細、実行基盤、接続方式を解決します。詳細は
+[ADR 0009](adr/0009-separate-workspace-domain-and-runtime-adapters.md)を参照してください。
+
 API AdapterにはFastAPIを使用します。APIのバージョン、ドメインrouter、Schema、依存性注入の構成は
 [API実装規約](api.md)に従います。
 
 ## データ
 
-教科書、章、WorkspaceDefinitionなどの永続データにはMySQL 9.7 LTSを使用します。各モジュールは同じデータベースを利用し、データの所有境界を分けます。Database SchemaはSQLModelで定義し、PyMySQLを使用する各モジュールのAdapterから接続します。Transaction境界はUseCaseが担い、1回のUseCase実行を1つのUnit of Workとします。DomainとApplicationはMySQL、SQLModel、SQLAlchemyへ依存しません。データベースの選定は[ADR 0005](adr/0005-use-mysql-9.7-lts.md)、接続、Transaction、Migrationの方式は[ADR 0008](adr/0008-use-sqlmodel-pymysql-and-alembic.md)を参照してください。
+教科書と章などの永続データにはMySQL 9.7 LTSを使用します。各モジュールは同じデータベースを利用し、データの所有境界を分けます。Database SchemaはSQLModelで定義し、PyMySQLを使用する各モジュールのAdapterから接続します。Transaction境界はUseCaseが担い、1回のUseCase実行を1つのUnit of Workとします。DomainとApplicationはMySQL、SQLModel、SQLAlchemyへ依存しません。データベースの選定は[ADR 0005](adr/0005-use-mysql-9.7-lts.md)、接続、Transaction、Migrationの方式は[ADR 0008](adr/0008-use-sqlmodel-pymysql-and-alembic.md)を参照してください。
 
-Workspaceの実行状態はデータベースへ保存せず、k3s上のリソースを正とします。
+Chapterは対応する実行環境をWorkspacePresetKeyで参照します。プリセットの詳細と保存方法はWorkspace Adapterが扱い、
+Domain Modelには含めません。
+
+WorkspaceSessionに対応する実行環境の存在と状態はデータベースへ保存せず、k3s上のリソースを正とします。
 
 ## k3s
 
 | Namespace | 配置するもの |
 | --- | --- |
 | `ns-niora-service` | フロントエンド、Niora API、MySQL、期限切れ削除CronJob |
-| `ns-niora-workspaces` | Workspaceを構成するPod群と付随するリソース |
+| `ns-niora-workspaces` | WorkspaceSessionに対応する実行環境のPod群と付随するリソース |
 
-すべてのWorkspaceは`ns-niora-workspaces`を共有し、LabelとNetworkPolicyでWorkspace間の通信を分離します。詳細は[ADR 0006](adr/0006-share-k3s-workspace-namespace.md)を参照してください。
+すべてのWorkspaceSessionに対応する実行環境は`ns-niora-workspaces`を共有し、LabelとNetworkPolicyで相互の通信を分離します。詳細は[ADR 0006](adr/0006-share-k3s-workspace-namespace.md)を参照してください。
 
-WorkspaceはWorkspaceDefinitionに従って1つ以上のPodと必要なService、NetworkPolicyで構成します。Niora APIが起動、状態確認、接続、削除を行い、期限切れ削除Jobが有効期限を過ぎたWorkspaceを削除します。
+Workspace AdapterはWorkspacePresetKeyからプリセットを解決し、WorkspaceSessionに対応する1つ以上のPodと必要なService、
+NetworkPolicyを作成します。WorkspaceSessionのIDで実行環境を関連付け、Niora APIが起動、状態確認、接続、削除を行います。
+期限切れ削除Jobは、有効期限を過ぎたWorkspaceSessionの実行環境を削除します。
 
-ブラウザとNiora APIの間はWebSocket、Niora APIとWorkspaceの間はk3s APIのPod `exec`で接続します。接続が切断されてもWorkspaceは維持します。詳細は[ADR 0007](adr/0007-run-workspaces-as-pods.md)を参照してください。
+ブラウザとNiora APIの間はWebSocket、Niora APIと実行環境の間はk3s APIのPod `exec`で接続します。Connectionが切断されても
+WorkspaceSessionと実行環境は維持します。詳細は[ADR 0007](adr/0007-run-workspaces-as-pods.md)を参照してください。
 
 ## 外部との境界
 
 - 利用者からバックエンド機能へのアクセスはNiora APIを経由する
 - MySQLとk3s APIを利用者へ公開しない
-- Workspaceへの接続をNiora APIが中継する
-- Workspace間の通信を禁止し、同じWorkspace内のPod間通信を許可する
-- Workspaceからインターネットへの通信を許可し、Nioraの基盤への通信を禁止する
+- WorkspaceSessionの実行環境への接続をNiora APIが中継する
+- WorkspaceSession間の通信を禁止し、同じWorkspaceSessionの実行環境内にあるPod間通信を許可する
+- 実行環境からインターネットへの通信を許可し、Nioraの基盤への通信を禁止する

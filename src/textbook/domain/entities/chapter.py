@@ -13,7 +13,7 @@ class Chapter:
         position: ChapterPosition,
         title: TitleString,
         content: ContentString,
-        workspace_definition_id: UUID | None = None,
+        workspace_preset_key: str | None = None,
     ) -> None:
         if not isinstance(id, UUID):
             raise TypeError("chapter id must be a UUID")
@@ -25,15 +25,17 @@ class Chapter:
             raise TypeError("chapter title must be a TitleString")
         if not isinstance(content, ContentString):
             raise TypeError("chapter content must be a ContentString")
-        if workspace_definition_id is not None and not isinstance(workspace_definition_id, UUID):
-            raise TypeError("workspace definition id must be a UUID or None")
+        if workspace_preset_key is not None and not isinstance(workspace_preset_key, str):
+            raise TypeError("workspace preset key must be a string or None")
+        if workspace_preset_key == "":
+            raise ValueError("workspace preset key must not be empty")
 
         self._id = id
         self._textbook_id = textbook_id
         self._position = position
         self._title = title
         self._content = content
-        self._workspace_definition_id = workspace_definition_id
+        self._workspace_preset_key = workspace_preset_key
 
     @property
     def id(self) -> UUID:
@@ -61,9 +63,9 @@ class Chapter:
         return self._content
 
     @property
-    def workspace_definition_id(self) -> UUID | None:
-        """章に紐づくWorkspaceDefinitionの識別子を返す。"""
-        return self._workspace_definition_id
+    def workspace_preset_key(self) -> str | None:
+        """章に紐づくWorkspacePresetKeyを返す。"""
+        return self._workspace_preset_key
 
     def change_title(self, title: TitleString) -> None:
         """章のタイトルを変更する。"""
@@ -86,9 +88,11 @@ class Chapter:
 
         self._position = position
 
-    def change_workspace_definition(self, workspace_definition_id: UUID | None) -> None:
-        """章に紐づくWorkspaceDefinitionを変更する。"""
-        if workspace_definition_id is not None and not isinstance(workspace_definition_id, UUID):
-            raise TypeError("workspace definition id must be a UUID or None")
+    def change_workspace_preset_key(self, workspace_preset_key: str | None) -> None:
+        """章に紐づくWorkspacePresetKeyを変更する。"""
+        if workspace_preset_key is not None and not isinstance(workspace_preset_key, str):
+            raise TypeError("workspace preset key must be a string or None")
+        if workspace_preset_key == "":
+            raise ValueError("workspace preset key must not be empty")
 
-        self._workspace_definition_id = workspace_definition_id
+        self._workspace_preset_key = workspace_preset_key
