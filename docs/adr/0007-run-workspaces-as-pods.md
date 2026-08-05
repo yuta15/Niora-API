@@ -1,5 +1,9 @@
 # 0007: Workspaceを1つ以上のPodで構成しk3sを状態の正とする
 
+> **後続の決定:** WorkspaceDefinitionがPod構成と接続対象を持つ責務は、
+> [ADR 0009](0009-separate-workspace-domain-and-runtime-adapters.md)で更新した。
+> 実行環境の詳細とConnection方式はAdapterが扱う。k3sを実行状態の正とする決定は継続する。
+
 ## 背景
 
 v0.0.1では、Workspaceのスケーリングや高可用性を必要としない。一方、将来はUbuntuだけでなく、データベースや各種サービスを組み合わせたWorkspaceを扱う可能性がある。
