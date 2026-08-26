@@ -28,6 +28,7 @@ Niora APIは、教科書の内容に対応したWorkspaceをk3s上に起動し�
 - テストの作成と修正は`docs/testing.md`に従う
 - APIの作成と修正は`docs/api.md`に従う
 - ドキュメントは日本語、コード上の識別子は英語で記述する
+- 作業完了前に、変更内容に応じたMakefileの検証コマンド（最低限`make check`）を実行する。失敗した場合は原因を修正し、成功するまで検証を再実行する
 
 ### Pythonのimport
 

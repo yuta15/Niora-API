@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: niora-api-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:yuta15/Niora-API.git
+    targetRevision: main
+    path: manifests/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ns-niora-service
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

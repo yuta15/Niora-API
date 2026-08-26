@@ -14,69 +14,58 @@ NioraのバックエンドAPIです。
 ### 依存関係のインストール
 
 ```bash
-uv sync
+make install
 ```
+
+依存関係だけを同期する場合は`make sync`を使用します。
 
 ### pre-commitの有効化
 
 ```bash
-uv run pre-commit install
+make pre-commit-install
 ```
 
 設定後は、コミット時にRuff、mypy、ファイル形式などのチェックが実行されます。
 
 ## 開発コマンド
 
+主要な開発コマンドはMakefileから実行します。利用可能なtargetは次のとおりです。
+
+| 操作 | Make target |
+| --- | --- |
+| 依存関係のインストール | `make install` |
+| 依存関係の同期 | `make sync` |
+| Lint | `make lint` |
+| Lintの自動修正 | `make lint-fix` |
+| Format | `make format` |
+| Formatの確認 | `make format-check` |
+| 型チェック（mypy、Pyright） | `make typecheck` |
+| アーキテクチャ依存チェック | `make architecture/imports` |
+| 外部サービスを使用しないテスト | `make test` |
+| すべてのテスト | `make test-all` |
+| カバレッジ付きテスト | `make test-cov` |
+| pre-commitの有効化 | `make pre-commit-install` |
+| pre-commitの全ファイル実行 | `make pre-commit` |
+| 変更を加えない総合チェック | `make check` |
+
+コミット前やPull Request作成前には、変更を加えない`make check`を実行してください。
+
 ### テスト
 
 ```bash
-uv run pytest
+make test
+```
+
+すべてのテスト（Integration、E2Eを含む）を実行する場合：
+
+```bash
+make test-all
 ```
 
 カバレッジを計測する場合：
 
 ```bash
-uv run pytest --cov=src --cov-branch --cov-report=term-missing
-```
-
-> 現在はテスト未作成のため、テスト追加後に利用できます。
-
-### Lint
-
-```bash
-uv run ruff check .
-```
-
-自動修正する場合：
-
-```bash
-uv run ruff check . --fix
-```
-
-### Format
-
-```bash
-uv run ruff format .
-```
-
-フォーマット差分のみ確認する場合：
-
-```bash
-uv run ruff format --check .
-```
-
-### 型チェック
-
-```bash
-uv run mypy .
-```
-
-### pre-commit
-
-すべてのファイルをチェックする場合：
-
-```bash
-uv run pre-commit run --all-files
+make test-cov
 ```
 
 ### 依存関係の追加
