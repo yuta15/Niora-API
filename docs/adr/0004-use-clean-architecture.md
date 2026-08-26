@@ -1,5 +1,9 @@
 # 0004: ソフトウェア構成にクリーンアーキテクチャを採用する
 
+> **後続の決定:** WorkspaceモジュールのDomainとAdapterの責務は、
+> [ADR 0009](0009-separate-workspace-domain-and-runtime-adapters.md)で具体化した。
+> v0.0.1ではWorkspaceDefinitionをDomain Entityとして扱わない。
+
 ## 背景
 
 Niora APIは、k3sを利用したUbuntuのWorkspaceだけでなく、将来はデータベースやHTTPサービスなど、異なる種類の環境と接続方式を扱う。外部システムごとのAPI、接続手順、データ形式の差をNiora API内で吸収し、利用者には同じドメイン概念として提供する必要がある。

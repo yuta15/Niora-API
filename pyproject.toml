@@ -5,7 +5,7 @@ description = "Backend API for Niora"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "fastapi>=0.141.1",
+    "fastapi[standard-no-fastapi-cloud-cli]>=0.141.1",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.2",
 ]
@@ -13,7 +13,9 @@ dependencies = [
 [dependency-groups]
 dev = [
     "mypy>=2.3.0",
+    "import-linter>=2.8.1",
     "pre-commit>=4.6.1",
+    "pyright>=1.1.407",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "pytest-mock>=3.15.1",
@@ -53,6 +55,51 @@ warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.14"
+typeCheckingMode = "standard"
+
+[tool.importlinter]
+root_package = "src"
+include_external_packages = false
+
+[[tool.importlinter.contracts]]
+name = "Textbook Domain does not depend on outer layers"
+type = "forbidden"
+source_modules = ["src.textbook.domain"]
+forbidden_modules = ["src.textbook.application", "src.textbook.adapter", "src.api", "src.workspace"]
+
+[[tool.importlinter.contracts]]
+name = "Workspace Domain does not depend on outer layers"
+type = "forbidden"
+source_modules = ["src.workspace.domain"]
+forbidden_modules = ["src.workspace.application", "src.workspace.adapter", "src.api", "src.textbook"]
+
+[[tool.importlinter.contracts]]
+name = "Textbook Application does not depend on delivery or infrastructure"
+type = "forbidden"
+source_modules = ["src.textbook.application"]
+forbidden_modules = ["src.textbook.adapter", "src.api", "src.workspace.domain", "src.workspace.adapter"]
+
+[[tool.importlinter.contracts]]
+name = "Textbook module does not depend on Workspace runtime layers"
+type = "forbidden"
+source_modules = ["src.textbook"]
+forbidden_modules = ["src.workspace.domain", "src.workspace.adapter"]
+
+[[tool.importlinter.contracts]]
+name = "Workspace module does not depend on Textbook implementation layers"
+type = "forbidden"
+source_modules = ["src.workspace"]
+forbidden_modules = ["src.textbook.domain", "src.textbook.adapter"]
+
+[[tool.importlinter.contracts]]
+name = "Workspace Application does not depend on delivery or infrastructure"
+type = "forbidden"
+source_modules = ["src.workspace.application"]
+forbidden_modules = ["src.workspace.adapter", "src.api", "src.textbook.domain", "src.textbook.adapter"]
 
 [tool.pytest.ini_options]
 addopts = [

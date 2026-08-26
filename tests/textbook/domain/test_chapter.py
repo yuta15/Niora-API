@@ -8,24 +8,24 @@ CHAPTER_ID = UUID("35e2a8e4-b60c-412a-9406-ce999b15fcd3")
 OTHER_CHAPTER_ID = UUID("8498bf44-f8f8-42e8-bdb6-5f60b2b51b7c")
 TEXTBOOK_ID = UUID("d9e259cb-c537-451b-b38b-90443f553185")
 OTHER_TEXTBOOK_ID = UUID("38e3ae7b-357f-44ea-b0d8-f8499fc3f132")
-WORKSPACE_DEFINITION_ID = UUID("2698ea2e-e0c9-4722-8eb6-f14659680306")
-OTHER_WORKSPACE_DEFINITION_ID = UUID("8043bd5f-c87a-4192-8c72-73b5ff260722")
+WORKSPACE_PRESET_KEY = "ws-ubuntu-24_04"
+OTHER_WORKSPACE_PRESET_KEY = "ws-ubuntu-26_04"
 
 
-def _chapter(workspace_definition_id: UUID | None = WORKSPACE_DEFINITION_ID) -> Chapter:
+def _chapter(workspace_preset_key: str | None = WORKSPACE_PRESET_KEY) -> Chapter:
     return Chapter(
         id=CHAPTER_ID,
         textbook_id=TEXTBOOK_ID,
         position=ChapterPosition(1),
         title=TitleString("変更前のタイトル"),
         content=ContentString("変更前の本文"),
-        workspace_definition_id=workspace_definition_id,
+        workspace_preset_key=workspace_preset_key,
     )
 
 
 @pytest.mark.parametrize(
     "argument_name",
-    ["id", "textbook_id", "position", "title", "content", "workspace_definition_id"],
+    ["id", "textbook_id", "position", "title", "content", "workspace_preset_key"],
 )
 def test_init_failure_rejects_invalid_argument_type(argument_name: str) -> None:
     """章がUUIDと所定の値オブジェクト以外から生成されないことを確認する。"""
@@ -35,7 +35,7 @@ def test_init_failure_rejects_invalid_argument_type(argument_name: str) -> None:
         "position": ChapterPosition(1),
         "title": TitleString("章のタイトル"),
         "content": ContentString("章の本文"),
-        "workspace_definition_id": WORKSPACE_DEFINITION_ID,
+        "workspace_preset_key": WORKSPACE_PRESET_KEY,
     }
     arguments[argument_name] = object()
 
@@ -54,7 +54,7 @@ def test_change_title_success_updates_only_title() -> None:
     assert chapter.textbook_id == TEXTBOOK_ID
     assert chapter.position == ChapterPosition(1)
     assert chapter.content == ContentString("変更前の本文")
-    assert chapter.workspace_definition_id == WORKSPACE_DEFINITION_ID
+    assert chapter.workspace_preset_key == WORKSPACE_PRESET_KEY
 
 
 def test_change_content_success_accepts_empty_content() -> None:
@@ -68,7 +68,7 @@ def test_change_content_success_accepts_empty_content() -> None:
     assert chapter.textbook_id == TEXTBOOK_ID
     assert chapter.position == ChapterPosition(1)
     assert chapter.title == TitleString("変更前のタイトル")
-    assert chapter.workspace_definition_id == WORKSPACE_DEFINITION_ID
+    assert chapter.workspace_preset_key == WORKSPACE_PRESET_KEY
 
 
 def test_change_position_success_updates_only_position() -> None:
@@ -82,34 +82,50 @@ def test_change_position_success_updates_only_position() -> None:
     assert chapter.textbook_id == TEXTBOOK_ID
     assert chapter.title == TitleString("変更前のタイトル")
     assert chapter.content == ContentString("変更前の本文")
-    assert chapter.workspace_definition_id == WORKSPACE_DEFINITION_ID
+    assert chapter.workspace_preset_key == WORKSPACE_PRESET_KEY
 
 
-def test_change_workspace_definition_success_associates_definition() -> None:
-    """WorkspaceDefinitionが未設定の章へ新しく紐付けられることを確認する。"""
-    chapter = _chapter(workspace_definition_id=None)
+def test_change_workspace_preset_key_success_associates_preset() -> None:
+    """WorkspacePresetKeyが未設定の章へ新しく紐付けられることを確認する。"""
+    chapter = _chapter(workspace_preset_key=None)
 
-    chapter.change_workspace_definition(WORKSPACE_DEFINITION_ID)
+    chapter.change_workspace_preset_key(WORKSPACE_PRESET_KEY)
 
-    assert chapter.workspace_definition_id == WORKSPACE_DEFINITION_ID
+    assert chapter.workspace_preset_key == WORKSPACE_PRESET_KEY
 
 
-def test_change_workspace_definition_success_replaces_definition() -> None:
-    """章に紐づくWorkspaceDefinitionを別の定義へ変更できることを確認する。"""
+def test_change_workspace_preset_key_success_replaces_preset() -> None:
+    """章に紐づくWorkspacePresetKeyを別のキーへ変更できることを確認する。"""
     chapter = _chapter()
 
-    chapter.change_workspace_definition(OTHER_WORKSPACE_DEFINITION_ID)
+    chapter.change_workspace_preset_key(OTHER_WORKSPACE_PRESET_KEY)
 
-    assert chapter.workspace_definition_id == OTHER_WORKSPACE_DEFINITION_ID
+    assert chapter.workspace_preset_key == OTHER_WORKSPACE_PRESET_KEY
 
 
-def test_change_workspace_definition_success_removes_definition() -> None:
-    """章とWorkspaceDefinitionの紐付けを解除できることを確認する。"""
+def test_change_workspace_preset_key_success_removes_preset() -> None:
+    """章とWorkspacePresetKeyの紐付けを解除できることを確認する。"""
     chapter = _chapter()
 
-    chapter.change_workspace_definition(None)
+    chapter.change_workspace_preset_key(None)
 
-    assert chapter.workspace_definition_id is None
+    assert chapter.workspace_preset_key is None
+
+
+def test_init_failure_rejects_empty_workspace_preset_key() -> None:
+    """空文字列をWorkspacePresetKeyとして章へ紐付けられないことを確認する。"""
+    with pytest.raises(ValueError):
+        _chapter(workspace_preset_key="")
+
+
+def test_change_workspace_preset_key_failure_rejects_empty_key() -> None:
+    """WorkspacePresetKeyを空文字列へ変更できないことを確認する。"""
+    chapter = _chapter()
+
+    with pytest.raises(ValueError):
+        chapter.change_workspace_preset_key("")
+
+    assert chapter.workspace_preset_key == WORKSPACE_PRESET_KEY
 
 
 @pytest.mark.parametrize(
@@ -118,7 +134,7 @@ def test_change_workspace_definition_success_removes_definition() -> None:
         "change_title",
         "change_content",
         "change_position",
-        "change_workspace_definition",
+        "change_workspace_preset_key",
     ],
 )
 def test_change_failure_rejects_invalid_type(method_name: str) -> None:
@@ -131,7 +147,7 @@ def test_change_failure_rejects_invalid_type(method_name: str) -> None:
         chapter.position,
         chapter.title,
         chapter.content,
-        chapter.workspace_definition_id,
+        chapter.workspace_preset_key,
     )
 
     with pytest.raises(TypeError):
@@ -143,7 +159,7 @@ def test_change_failure_rejects_invalid_type(method_name: str) -> None:
         chapter.position,
         chapter.title,
         chapter.content,
-        chapter.workspace_definition_id,
+        chapter.workspace_preset_key,
     ) == original_state
 
 
@@ -155,7 +171,7 @@ def test_change_failure_rejects_invalid_type(method_name: str) -> None:
         ("position", ChapterPosition(2)),
         ("title", TitleString("直接代入するタイトル")),
         ("content", ContentString("直接代入する本文")),
-        ("workspace_definition_id", OTHER_WORKSPACE_DEFINITION_ID),
+        ("workspace_preset_key", OTHER_WORKSPACE_PRESET_KEY),
     ],
 )
 def test_property_assignment_failure_is_rejected(attribute_name: str, new_value: object) -> None:
