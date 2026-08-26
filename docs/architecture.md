@@ -98,7 +98,9 @@ API AdapterにはFastAPIを使用します。APIのバージョン、ドメイ�
 Chapterは対応する実行環境をWorkspacePresetKeyで参照します。プリセットの詳細と保存方法はWorkspace Adapterが扱い、
 Domain Modelには含めません。
 
-WorkspaceSessionに対応する実行環境の存在と状態はデータベースへ保存せず、k3s上のリソースを正とします。
+WorkspaceSessionに対応する実行環境の存在と状態、およびWorkspaceSessionを復元するための情報はデータベースへ保存せず、
+k3s上のリソースを正とします。WorkspaceSessionのID、WorkspacePresetKey、有効期限は、Workspace Adapterがk3sリソースの
+LabelとAnnotationへ記録します。詳細は[ADR 0010](adr/0010-store-workspace-session-metadata-in-k3s.md)を参照してください。
 
 ## k3s
 
@@ -111,6 +113,10 @@ WorkspaceSessionに対応する実行環境の存在と状態はデータベー�
 
 Workspace AdapterはWorkspacePresetKeyからプリセットを解決し、WorkspaceSessionに対応する1つ以上のPodと必要なService、
 NetworkPolicyを作成します。WorkspaceSessionのIDで実行環境を関連付け、Niora APIが起動、状態確認、接続、削除を行います。
+同じWorkspaceSessionのIDを使用した作成処理は、共通Labelと決定的なリソース名を利用して冪等に再試行できるようにします。
+プリセットごとのリソース構成と作成・削除順序は、Workspace Adapter内部の順序付きStepとしてそれぞれ定義します。Adapterは
+WorkspacePresetKeyからPlanを解決し、作成用または削除用のStepを順番に実行します。詳細は
+[ADR 0011](adr/0011-compose-workspace-resource-lifecycle-steps.md)を参照してください。
 期限切れ削除Jobは、有効期限を過ぎたWorkspaceSessionの実行環境を削除します。
 
 ブラウザとNiora APIの間はWebSocket、Niora APIと実行環境の間はk3s APIのPod `exec`で接続します。Connectionが切断されても
