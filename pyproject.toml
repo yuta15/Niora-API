@@ -69,19 +69,37 @@ include_external_packages = false
 name = "Textbook Domain does not depend on outer layers"
 type = "forbidden"
 source_modules = ["src.textbook.domain"]
-forbidden_modules = ["src.textbook.application", "src.textbook.adapter", "src.api"]
+forbidden_modules = ["src.textbook.application", "src.textbook.adapter", "src.api", "src.workspace"]
 
 [[tool.importlinter.contracts]]
 name = "Workspace Domain does not depend on outer layers"
 type = "forbidden"
 source_modules = ["src.workspace.domain"]
-forbidden_modules = ["src.workspace.application", "src.workspace.adapter", "src.api"]
+forbidden_modules = ["src.workspace.application", "src.workspace.adapter", "src.api", "src.textbook"]
 
 [[tool.importlinter.contracts]]
 name = "Textbook Application does not depend on delivery or infrastructure"
 type = "forbidden"
 source_modules = ["src.textbook.application"]
-forbidden_modules = ["src.textbook.adapter", "src.api"]
+forbidden_modules = ["src.textbook.adapter", "src.api", "src.workspace.domain", "src.workspace.adapter"]
+
+[[tool.importlinter.contracts]]
+name = "Textbook module does not depend on Workspace runtime layers"
+type = "forbidden"
+source_modules = ["src.textbook"]
+forbidden_modules = ["src.workspace.domain", "src.workspace.adapter"]
+
+[[tool.importlinter.contracts]]
+name = "Workspace module does not depend on Textbook implementation layers"
+type = "forbidden"
+source_modules = ["src.workspace"]
+forbidden_modules = ["src.textbook.domain", "src.textbook.adapter"]
+
+[[tool.importlinter.contracts]]
+name = "Workspace Application does not depend on delivery or infrastructure"
+type = "forbidden"
+source_modules = ["src.workspace.application"]
+forbidden_modules = ["src.workspace.adapter", "src.api", "src.textbook.domain", "src.textbook.adapter"]
 
 [tool.pytest.ini_options]
 addopts = [

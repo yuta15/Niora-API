@@ -25,7 +25,8 @@ make install
 make pre-commit-install
 ```
 
-設定後は、コミット時にRuff、mypy、ファイル形式などのチェックが実行されます。
+設定後は、コミット時にファイル形式の検証に加えて`make check`が実行され、Ruff、mypy、Pyright、
+import-linter、外部サービスを使用しないテストが検証されます。
 
 ## 開発コマンド
 
