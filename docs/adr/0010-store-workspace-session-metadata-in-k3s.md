@@ -1,0 +1,100 @@
+# 0010: WorkspaceSessionの情報をk3sリソースに保持する
+
+## 背景
+
+Workspaceの作成後に状態確認、接続、明示的な終了、期限切れ削除を行うには、WorkspaceSessionとk3s上の実行環境を
+継続して対応付ける必要がある。
+
+WorkspaceSessionをMySQLへ保存し、TransactionをCommitする前にk3sリソースを作成する方式では、k3sリソースの作成後、
+MySQLのCommit前にApplication Processが終了すると、MySQLのレコードだけがRollbackされ、k3sリソースが残る。
+MySQLのTransactionではk3s APIの操作をRollbackできないため、両者を1つの原子的な更新として扱うことはできない。
+
+v0.0.1では、利用者との所有関係、WorkspaceSessionの履歴、および削除後の状態を保存しない。実行環境の存在と状態は
+すでにk3sを正とすることを決定しているため、WorkspaceSessionを復元するための情報もk3s上のリソースへ保持する方が、
+保存先と実行環境の不整合を少なくできる。
+
+## 決定
+
+v0.0.1では、WorkspaceSessionをMySQLへ保存しない。WorkspaceSessionと実行環境の対応、およびWorkspaceSessionの復元に
+必要な情報を、WorkspaceSessionに対応して作成するk3sリソースのLabelとAnnotationへ保持する。
+
+- WorkspaceSessionのIDは、対応するすべてのリソースを検索できる共通Labelとして保持する
+- Workspace内でのリソースの役割は、必要に応じてLabelとして保持する
+- WorkspacePresetKeyと有効期限はAnnotationとして保持する
+- k3sリソース名は、WorkspaceSessionのIDとWorkspace内での役割から決定できる形式にする
+- LabelとAnnotationはWorkspace Adapterが一貫して付与し、利用者から変更できないようにする
+
+Workspace Adapterは、ApplicationからWorkspaceSessionを受け取り、WorkspacePresetKeyから技術的なプリセットを解決して
+必要なリソースを作成する。作成時にWorkspaceSessionの情報をLabelとAnnotationへ記録し、Session情報の保存を独立した
+MySQL Repositoryの操作として分離しない。
+
+WorkspaceSessionのIDから実行環境を取得するときは、Workspace Adapterが`ns-niora-workspaces`内の対象リソースを種類ごとに
+共通Labelで検索する。取得したリソースのAnnotationをWorkspaceSessionと照合し、WorkspacePresetKeyと有効期限が一致する
+ことを確認する。実行状態は取得したPod群から判断し、引き続きk3s上の実状態を正とする。
+
+同じWorkspaceSessionのIDを使用した作成処理の再試行は、次のように扱う。
+
+- 対象リソースが存在しない場合は作成する
+- 必要なリソースがすべて存在し、WorkspaceSessionの情報が一致する場合は作成済みとして成功させる
+- 作成途中のリソースだけが存在する場合は、共通Labelで後始末し、同じWorkspaceSessionのIDで再作成できるようにする
+- 同じWorkspaceSessionのIDに異なるWorkspacePresetKeyまたは有効期限が記録されている場合は、不整合として扱い、
+  自動的に上書きしない
+
+この決定が保証する冪等性は、同じWorkspaceSessionのIDを使用してWorkspace Adapterの作成処理を再試行する範囲とする。
+HTTPリクエストの再送時にも同じWorkspaceSessionのIDを使用する方法は、本ADRでは決定しない。
+
+## 今後の展望
+
+User、認証、認可、およびWorkspaceの所有関係を導入する際は、1人のUserが1つのChapterに対して同時に利用できる
+WorkspaceSessionを最大1つとする業務規則を検討する。同じUserとChapterに有効なWorkspaceSessionが存在する場合、
+新しいWorkspaceを重複して作成せず、既存のWorkspaceを返す。既存のWorkspaceSessionが明示的に終了した場合、または
+有効期限を過ぎた場合は、新しいWorkspaceSessionを開始できるようにする。
+
+この業務規則を同時実行時にも保証するには、User、Chapter、有効なWorkspaceSessionの対応を永続化し、一意性を保証する
+仕組みが必要になる。その時点でWorkspaceSessionをMySQLへ保存する方式、Transaction境界、k3sとの整合性回復、および
+HTTPリクエスト単位の冪等性を再評価し、必要な決定を別のADRへ記録する。
+
+## 代替案
+
+### MySQLのTransactionをCommitせずにk3sリソースを作成する
+
+WorkspaceSessionをMySQLへ書き込み、Transactionを維持したままk3sリソースを作成し、成功後にCommitする案。
+
+k3sリソースの作成後、MySQLのCommit前にApplication Processが終了した場合や、Commitの結果を確認できない場合に、
+MySQLとk3sの不整合が残る。外部APIの処理中にDatabase接続とLockを長時間維持することにもなるため採用しない。
+
+### WorkspaceSessionをMySQLへ先にCommitする
+
+WorkspaceSessionを作成処理中の状態でMySQLへCommitしてから、k3sリソースを作成する案。
+
+作成意図を永続化し、再試行や異常終了後の整合性回復を実装できる。一方、作成途中の状態、補償処理、定期的な整合性確認を
+追加する必要がある。v0.0.1では利用者との所有関係や履歴を保存しないため、この複雑さを追加せず、k3sだけを正とする。
+
+将来、WorkspaceSessionの所有者、履歴、またはHTTPリクエスト単位の冪等性をMySQLで管理する必要が生じた場合に、
+この方式を再検討する。
+
+### WorkspaceSession専用のk3sリソースを作成する
+
+ConfigMapまたはCustom ResourceなどをWorkspaceSessionの情報だけを保持する基準リソースとし、実行環境のリソースを
+関連付ける案。
+
+Session情報の取得元を1つにできるが、専用リソースの作成、削除、権限、実行環境との整合性を管理する必要がある。
+v0.0.1では、Workspaceに必要な既存リソースへ共通のLabelとAnnotationを付与する方式で必要な情報を取得できるため採用しない。
+
+## 影響
+
+- WorkspaceSession用のTable、Migration、MySQL Repositoryは作成しない
+- Workspace Adapterは、リソースの作成だけでなく、WorkspaceSession情報の記録、復元、整合性確認を担う
+- 取得と削除では、k3sリソースの種類ごとに共通Labelを使用して対象を検索する必要がある
+- LabelまたはAnnotationの欠落や不一致は、状態確認、再試行、期限切れ削除へ影響するため、Adapterのテストで検証する必要がある
+- 同じWorkspaceSessionのIDから同じリソース名を決定し、作成処理と後始末を冪等にする必要がある
+- すべてのk3sリソースを削除するとWorkspaceSessionの情報も失われ、削除済み、期限切れ、初めから存在しない状態を区別できない
+- WorkspaceSessionを利用者へ対応付けることはできない。利用者との所有関係が必要になった場合は保存方式を再評価する
+- HTTPリクエスト単位の冪等性には、同じWorkspaceSessionのIDを再利用するための別の仕組みが必要になる
+
+## 関連ドキュメント
+
+- [アーキテクチャ](../architecture.md)
+- [ADR 0006: k3sのNamespaceをサービス用とWorkspace用に分離する](0006-share-k3s-workspace-namespace.md)
+- [ADR 0007: Workspaceを1つ以上のPodで構成しk3sを状態の正とする](0007-run-workspaces-as-pods.md)
+- [ADR 0009: Workspaceの業務責務と実行環境の技術責務を分離する](0009-separate-workspace-domain-and-runtime-adapters.md)
