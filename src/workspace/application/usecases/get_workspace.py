@@ -1,4 +1,4 @@
-from src.workspace.application.exceptions import WorkspaceNotFoundError
+from src.workspace.application import WorkspaceNotFoundError
 from src.workspace.application.models import GetWorkspaceInput, GetWorkspaceOutput
 from src.workspace.application.ports import WorkspaceRuntime
 

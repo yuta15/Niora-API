@@ -4,7 +4,7 @@ from src.textbook.application.queries import (
     ChapterWorkspacePresetQuery,
     ResolveChapterWorkspacePresetInput,
 )
-from src.workspace.application.exceptions import ChapterNotFoundError, WorkspacePresetNotConfiguredError
+from src.workspace.application import ChapterNotFoundError, WorkspacePresetNotConfiguredError
 from src.workspace.application.models import CreateWorkspaceInput, CreateWorkspaceOutput
 from src.workspace.application.ports import Clock, WorkspaceRuntime, WorkspaceSessionIdGenerator
 from src.workspace.domain.entities import WorkspacePresetKey, WorkspaceSession
