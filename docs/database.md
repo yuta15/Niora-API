@@ -12,8 +12,8 @@ Niora APIで使用するデータベースの設計を記録します。
 
 ## 接続
 
-- Database Schemaと永続化Model：SQLModel
-- 接続プール：SQLModelが基盤とするSQLAlchemy 2.xの同期API
+- Database Schemaと永続化Model：SQLAlchemy 2.x ORMのDeclarative Mapping
+- 接続プール：SQLAlchemy 2.xの同期API
 - DBAPI Driver：PyMySQL
 - Storage Engine：InnoDB
 - 文字コード：`utf8mb4`
@@ -22,14 +22,40 @@ Niora APIで使用するデータベースの設計を記録します。
 
 Transaction境界はUseCaseが担います。同じUseCaseで使用するRepositoryは同じ`Session`を共有します。Repositoryは`commit`、
 `rollback`、`Session`の生成を行わず、Applicationが定義するUnit of WorkのPortを通してUseCaseがTransactionを管理します。
-DomainとApplicationはMySQL、SQLModel、SQLAlchemy、PyMySQLの型へ依存しません。
+DomainとApplicationはMySQL、SQLAlchemy、PyMySQLの型へ依存しません。
 
-SQLModelのTable ModelはMySQL Adapter内へ配置し、Domain EntityやAPI Schemaには使用しません。AdapterでDomainの型と相互変換します。
+SQLAlchemyのTable Modelは所有するDomain ModuleのInfrastructure内へ配置し、Domain EntityやAPI Schemaには使用しません。
+Table ModelはShared Infrastructureが提供する`DeclarativeBase`を基底とし、`Mapped`と`mapped_column`を使用して定義します。
+Shared InfrastructureにはDomain Module固有のTable Modelを配置しません。
 
 接続プールでは接続取得時の死活確認と接続の再利用上限を有効にします。プールサイズ、Overflow、Timeout、再利用上限は、
 Application Processの同時実行数とMySQLの最大接続数に合わせて設定します。
 
-詳細と判断理由は[ADR 0008](adr/0008-use-sqlmodel-pymysql-and-alembic.md)を参照してください。
+MySQL接続、Transaction、Migrationの方式は[ADR 0008](adr/0008-use-sqlmodel-pymysql-and-alembic.md)、SQLAlchemyへの変更と
+Table Modelの所有境界は[ADR 0012](adr/0012-use-sqlalchemy-and-separate-database-infrastructure.md)を参照してください。
+
+## Package構成
+
+Database Infrastructureは次の責務で分けます。
+
+```text
+src/
+├── shared/
+│   └── infra/
+│       └── databases/
+│           └── base.py
+└── textbook/
+    └── infra/
+        └── databases/
+            ├── textbook.py
+            └── chapter.py
+```
+
+- `src/shared/infra/databases/base.py`は、共通のDeclarative Base、`MetaData`、Constraint命名規則を定義する
+- `src/textbook/infra/databases/textbook.py`は、TextbookのTable Modelを定義する
+- `src/textbook/infra/databases/chapter.py`は、ChapterのTable Modelを定義する
+- Module固有のTable Modelを`src/shared`へ配置しない
+- `databases` PackageにはTable Modelだけを配置し、Repository実装は含めない
 
 ## マイグレーション
 
@@ -41,7 +67,8 @@ Revision履歴をリポジトリで管理します。
 - デプロイではAPIとScheduled Jobの更新前に専用Migration Jobで`uv run alembic upgrade head`を1回だけ実行する
 - Application起動時にはMigrationを実行しない
 - 空のDatabaseへ`head`まで適用できる状態を維持する
-- Alembicの`target_metadata`へ`SQLModel.metadata`を指定し、`SQLModel.metadata.create_all()`は使用しない
+- Alembicの`target_metadata`へShared InfrastructureのDeclarative Baseが持つ`MetaData`を指定し、
+  `MetaData.create_all()`は使用しない
 
 MySQLのDDLはTransaction中でも暗黙にcommitされるため、複数のSchema変更をまとめてrollbackできるとはみなしません。
 破壊的変更ではBackup、互換期間、復旧手順を定め、Production相当環境の復旧は原則として前方修正します。
@@ -55,12 +82,15 @@ Database接続には次の設定値を使用します。
 | `NIORA_DATABASE_HOST` | いいえ | MySQLのHost |
 | `NIORA_DATABASE_PORT` | いいえ | MySQLのPort |
 | `NIORA_DATABASE_NAME` | いいえ | 接続先Database名 |
-| `NIORA_DATABASE_USER` | はい | MySQL Account名 |
-| `NIORA_DATABASE_PASSWORD` | はい | MySQL AccountのPassword |
-| `NIORA_DATABASE_POOL_SIZE` | いいえ | 通常保持する接続数 |
-| `NIORA_DATABASE_MAX_OVERFLOW` | いいえ | 一時的に追加できる接続数 |
-| `NIORA_DATABASE_POOL_TIMEOUT_SECONDS` | いいえ | 接続取得の待機上限 |
-| `NIORA_DATABASE_POOL_RECYCLE_SECONDS` | いいえ | 接続を再作成するまでの秒数 |
+| `NIORA_DATABASE_MIGRATION_USER` | はい | Migration用MySQL Account名 |
+| `NIORA_DATABASE_MIGRATION_PASSWORD` | はい | Migration用MySQL AccountのPassword |
+| `NIORA_DATABASE_APPLICATION_USER` | はい | Application用MySQL Account名 |
+| `NIORA_DATABASE_APPLICATION_PASSWORD` | はい | Application用MySQL AccountのPassword |
+| `NIORA_DATABASE_ADMIN_PASSWORD` | はい | ローカルMySQLの管理AccountのPassword |
+| `NIORA_DATABASE_POOL_SIZE` | いいえ | Applicationが通常保持する接続数 |
+| `NIORA_DATABASE_MAX_OVERFLOW` | いいえ | Applicationが一時的に追加できる接続数 |
+| `NIORA_DATABASE_POOL_TIMEOUT_SECONDS` | いいえ | Applicationの接続取得の待機上限 |
+| `NIORA_DATABASE_POOL_RECYCLE_SECONDS` | いいえ | Applicationが接続を再作成するまでの秒数 |
 
 ローカルではGit管理外の`.env`、デプロイでは非秘密情報をConfigMap、UserとPasswordをKubernetes Secretから渡します。
 API用とMigration用のAccountおよびSecretを分離し、Migration用AccountだけにDDL権限を与えます。

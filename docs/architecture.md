@@ -93,7 +93,16 @@ API AdapterにはFastAPIを使用します。APIのバージョン、ドメイ�
 
 ## データ
 
-教科書と章などの永続データにはMySQL 9.7 LTSを使用します。各モジュールは同じデータベースを利用し、データの所有境界を分けます。Database SchemaはSQLModelで定義し、PyMySQLを使用する各モジュールのAdapterから接続します。Transaction境界はUseCaseが担い、1回のUseCase実行を1つのUnit of Workとします。DomainとApplicationはMySQL、SQLModel、SQLAlchemyへ依存しません。データベースの選定は[ADR 0005](adr/0005-use-mysql-9.7-lts.md)、接続、Transaction、Migrationの方式は[ADR 0008](adr/0008-use-sqlmodel-pymysql-and-alembic.md)を参照してください。
+教科書と章などの永続データにはMySQL 9.7 LTSを使用します。各モジュールは同じデータベースを利用し、データの所有境界を
+分けます。Database SchemaはSQLAlchemy 2.x ORMのDeclarative Mappingで定義します。共通のDeclarative Base、`MetaData`、
+Constraint命名規則はShared Infrastructureに配置し、Module固有のTable Modelは所有するModuleのInfrastructureに配置します。
+Shared InfrastructureにはModule固有のTable Modelを配置しません。
+
+PyMySQLを使用する各モジュールの外部実装からDatabaseへ接続します。Transaction境界はUseCaseが担い、1回のUseCase実行を
+1つのUnit of Workとします。DomainとApplicationはMySQL、SQLAlchemy、PyMySQLへ依存しません。データベースの選定は
+[ADR 0005](adr/0005-use-mysql-9.7-lts.md)、接続、Transaction、Migrationの方式は
+[ADR 0008](adr/0008-use-sqlmodel-pymysql-and-alembic.md)、SQLAlchemyとTable Modelの所有境界は
+[ADR 0012](adr/0012-use-sqlalchemy-and-separate-database-infrastructure.md)を参照してください。
 
 Chapterは対応する実行環境をWorkspacePresetKeyで参照します。プリセットの詳細と保存方法はWorkspace Adapterが扱い、
 Domain Modelには含めません。

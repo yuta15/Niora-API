@@ -1,5 +1,8 @@
 # 0008: Database SchemaにSQLModel、MySQL接続にPyMySQL、MigrationにAlembicを採用する
 
+> SQLModelを採用する決定は[ADR 0012](0012-use-sqlalchemy-and-separate-database-infrastructure.md)で置き換えた。
+> PyMySQL、Transaction境界、Alembic、Secret管理、Integrationテストに関する決定は引き続き有効とする。
+
 ## 背景
 
 Niora APIでは、Textbook、Chapter、WorkspaceDefinitionなどの永続データをMySQL 9.7 LTSへ保存する。
