@@ -20,8 +20,10 @@ Niora APIで使用するデータベースの設計を記録します。
 - `Engine`と`sessionmaker`：Application Processごとに1つ
 - `Session`：UseCase実行ごとに1つ
 
-Transaction境界はUseCaseが担います。同じUseCaseで使用するRepositoryは同じ`Session`を共有します。Repositoryは`commit`、
-`rollback`、`Session`の生成を行わず、Applicationが定義するUnit of WorkのPortを通してUseCaseがTransactionを管理します。
+Transaction境界はUseCaseが担います。同じUseCaseで使用するRepositoryは同じ`Session`を共有します。UseCaseはUnit of Workを
+Context Managerとして`with unit_of_work:`で利用し、正常終了時のcommitと例外時のrollbackはContext Managerへ委譲します。
+UseCaseから明示的にcommitを呼び出しません。Repositoryは`commit`、`rollback`、`Session`の生成を行わず、Unit of Workは
+Transactionのcommitとrollbackだけを担当します。Sessionの生成と解放、およびRepositoryの保持と生成はUnit of Workの責務外です。
 DomainとApplicationはMySQL、SQLAlchemy、PyMySQLの型へ依存しません。
 
 SQLAlchemyのTable Modelは所有するDomain ModuleのInfrastructure内へ配置し、Domain EntityやAPI Schemaには使用しません。
@@ -43,7 +45,10 @@ src/
 ├── shared/
 │   └── infra/
 │       └── database/
-│           └── base.py
+│           ├── base.py
+│           ├── engine.py
+│           ├── session.py
+│           └── unit_of_work.py
 └── textbook/
     └── infra/
         └── database/
@@ -52,10 +57,15 @@ src/
 ```
 
 - `src/shared/infra/database/base.py`は、共通のDeclarative Base、`MetaData`、Constraint命名規則を定義する
+- `src/shared/infra/database/engine.py`は、Application用設定から同期`Engine`を生成するFactoryを定義する
+- `src/shared/infra/database/session.py`は、`Engine`へbindした同期`sessionmaker`を生成するFactoryを定義する
+- `src/shared/infra/database/unit_of_work.py`は、注入された`Session`へTransaction操作を委譲するUnit of Workを定義する
 - `src/textbook/infra/database/textbook_table.py`は、TextbookのTable Modelを定義する
 - `src/textbook/infra/database/chapter_table.py`は、ChapterのTable Modelを定義する
 - Module固有のTable Modelを`src/shared`へ配置しない
-- `database` PackageにはTable Modelだけを配置し、Repository実装は含めない
+- FactoryはProcess singletonを内部に保持せず、Composition RootがApplication Processごとに1回生成する
+- Sessionの生成と解放、およびRepositoryの保持と生成はUnit of Workの責務外とする
+- `database` PackageにはDatabase技術基盤を配置し、Repository実装は含めない
 
 ## マイグレーション
 

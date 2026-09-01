@@ -32,7 +32,12 @@ Transaction境界はUseCaseが担い、1回のUseCase実行を1つのTransaction
 同じTransactionへ参加する。
 
 Repositoryは永続化操作だけを担当し、Transactionの開始、commit、rollbackを判断しない。更新系UseCaseは必要な処理が
-すべて成功した場合だけcommitし、失敗時はすべての変更をrollbackする。
+すべて成功した場合だけcommitし、失敗時はすべての変更をrollbackする。UseCaseはUnit of WorkをContext Managerとして
+`with unit_of_work:`で利用し、Context Managerの終了処理にcommitとrollbackを集約する。正常終了時は自動的にcommitし、
+処理中に例外が発生した場合は自動的にrollbackするため、UseCaseから明示的にcommitを呼び出さない。
+
+Unit of WorkはApplicationが定義する抽象Portとし、Transactionのcommitとrollbackの振る舞いだけを提供する。Sessionの生成と
+解放、およびRepositoryの保持と生成はUnit of Workの責務に含めず、Database InfrastructureとDependency Injectionが担当する。
 
 ### Migration
 
