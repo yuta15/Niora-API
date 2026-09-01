@@ -42,20 +42,20 @@ Database Infrastructureは次の責務で分けます。
 src/
 ├── shared/
 │   └── infra/
-│       └── databases/
+│       └── database/
 │           └── base.py
 └── textbook/
     └── infra/
-        └── databases/
-            ├── textbook.py
-            └── chapter.py
+        └── database/
+            ├── textbook_table.py
+            └── chapter_table.py
 ```
 
-- `src/shared/infra/databases/base.py`は、共通のDeclarative Base、`MetaData`、Constraint命名規則を定義する
-- `src/textbook/infra/databases/textbook.py`は、TextbookのTable Modelを定義する
-- `src/textbook/infra/databases/chapter.py`は、ChapterのTable Modelを定義する
+- `src/shared/infra/database/base.py`は、共通のDeclarative Base、`MetaData`、Constraint命名規則を定義する
+- `src/textbook/infra/database/textbook_table.py`は、TextbookのTable Modelを定義する
+- `src/textbook/infra/database/chapter_table.py`は、ChapterのTable Modelを定義する
 - Module固有のTable Modelを`src/shared`へ配置しない
-- `databases` PackageにはTable Modelだけを配置し、Repository実装は含めない
+- `database` PackageにはTable Modelだけを配置し、Repository実装は含めない
 
 ## マイグレーション
 

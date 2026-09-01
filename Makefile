@@ -1,7 +1,8 @@
 UV ?= uv
+DOCKER_COMPOSE ?= docker compose
 
 .PHONY: install sync lint lint-fix format format-check typecheck architecture/imports test test-all test-cov \
-	pre-commit-install pre-commit check
+	pre-commit-install pre-commit check db-up migrate db-down
 
 install: sync
 
@@ -43,3 +44,12 @@ pre-commit:
 	$(UV) run pre-commit run --all-files
 
 check: format-check lint typecheck architecture/imports test
+
+db-up:
+	$(DOCKER_COMPOSE) up -d --wait mysql
+
+migrate:
+	$(UV) run alembic upgrade head
+
+db-down:
+	$(DOCKER_COMPOSE) down --volumes
