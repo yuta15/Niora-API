@@ -28,7 +28,7 @@ ADRには方式と境界を記録し、現在有効な設定と手順は、そ�
 
 | ADRへ記録する内容 | 関連ドキュメントへ記録する内容 |
 | --- | --- |
-| Database SchemaにSQLModelを採用する | Table、Column、Indexの定義 |
+| Database SchemaにSQLAlchemyを採用する | Table、Column、Indexの定義 |
 | Transaction境界をUseCaseとする | Unit of WorkとRepositoryの具体的な構成 |
 | MigrationにAlembicを採用する | Revision作成・適用コマンドとデプロイ手順 |
 | Integrationテストで実際のMySQLを使用する | Containerの起動、Database分離、後始末の手順 |

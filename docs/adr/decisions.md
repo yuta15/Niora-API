@@ -13,3 +13,5 @@
 | 0009 | Workspaceの業務責務と実行環境の技術責務を分離する | [0009-separate-workspace-domain-and-runtime-adapters.md](0009-separate-workspace-domain-and-runtime-adapters.md) |
 | 0010 | WorkspaceSessionの情報をk3sリソースに保持する | [0010-store-workspace-session-metadata-in-k3s.md](0010-store-workspace-session-metadata-in-k3s.md) |
 | 0011 | Workspaceリソースのライフサイクルを順序付きStepで構成する | [0011-compose-workspace-resource-lifecycle-steps.md](0011-compose-workspace-resource-lifecycle-steps.md) |
+| 0012 | SQLAlchemyを直接使用しDatabase Infrastructureの所有境界を分ける | [0012-use-sqlalchemy-and-separate-database-infrastructure.md](0012-use-sqlalchemy-and-separate-database-infrastructure.md) |
+| 0013 | WorkspacePresetをKustomize ManifestとしてGit管理する | [0013-manage-workspace-presets-as-kustomize-manifests.md](0013-manage-workspace-presets-as-kustomize-manifests.md) |

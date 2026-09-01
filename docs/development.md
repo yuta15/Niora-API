@@ -17,7 +17,7 @@ Niora APIをローカルで開発するための詳細な手順とルールを�
 `.env.example`を`.env`へコピーし、ローカル専用のDatabase接続情報を設定します。`.env`はGit管理へ追加しません。
 設定名と用途は[データベース設計](database.md#設定)を参照してください。
 
-実装では`pydantic-settings`で各設定値を検証し、個別の値からSQLModelで使用する接続URLを組み立てます。接続URL、Password、
+実装では`pydantic-settings`で各設定値を検証し、個別の値からSQLAlchemy Engineで使用する接続URLを組み立てます。接続URL、Password、
 設定Objectをデバッグ出力しないでください。
 
 ## Database操作
@@ -40,3 +40,10 @@ make db-down
 ```
 
 テスト失敗時も`make db-down`を実行します。Databaseごとの分離と後始末はpytest Fixtureが担当します。
+
+ComposeのMySQLは、Migration用UserにSchema変更権限を与え、Application用Userには対象Databaseの
+`SELECT`、`INSERT`、`UPDATE`、`DELETE`だけを与えます。Application用Userは
+`compose/mysql/init/01-create-application-user.sh`によって作成されます。
+
+`docker-entrypoint-initdb.d`の初期化処理は、MySQLのData Volumeが空の場合にだけ実行されます。
+User名やPasswordを変更した場合、既存Dataを削除してよいことを確認してから、Volumeを作り直してください。
