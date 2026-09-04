@@ -30,7 +30,8 @@ Transaction境界、Alembic、Secret管理、および実際のMySQLを使用す
 ### Database Infrastructureの所有境界
 
 すべてのDatabase Table Modelが共有するDeclarative Base、`MetaData`、Constraint命名規則はShared Infrastructureが所有する。
-Shared InfrastructureにはDomain Module固有のTable Modelを置かない。
+加えて、Domain Moduleに依存せず、複数のModuleから共通利用する汎用的かつ横断的なDatabase技術基盤もShared Infrastructureが
+所有する。Shared InfrastructureにはDomain Module固有のTable Modelを置かない。
 
 Textbookや将来のほかのDomain Moduleが所有するTable Modelは、それぞれのModuleのInfrastructure内へ配置する。Textbookと
 ChapterのTable ModelはTextbook Infrastructureが所有し、Shared InfrastructureがTextbookのTable定義へ依存しない。
@@ -72,7 +73,7 @@ Alembicからは読み込みやすいが、Textbookなど各Domain Moduleが所�
 
 - ADR 0008のSQLModel採用部分は本ADRによって置き換えられる
 - SQLAlchemyをApplicationの直接依存ではなくInfrastructureの実装詳細として扱う必要がある
-- Shared InfrastructureはDeclarative Base、`MetaData`、Constraint命名規則だけを提供する
+- Shared InfrastructureはDomain Moduleに依存しない、汎用的かつ横断的なDatabase技術基盤を提供する
 - Module固有のTable Modelは各ModuleのInfrastructureが所有する
 - Alembic実行時には、すべてのModuleのTable Modelを確実に読み込んで共通の`MetaData`へ登録する必要がある
 - SQLModelと比較してTable Modelの定義量は増えるが、Database固有のMappingと制約を明示できる
