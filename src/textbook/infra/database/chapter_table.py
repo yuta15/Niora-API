@@ -7,6 +7,8 @@ from src.shared.infra.database import Base
 
 
 class ChapterTable(Base):
+    """Chapterを永続化するTable Model。"""
+
     __tablename__ = "chapter"
     __table_args__ = (
         CheckConstraint("title <> ''", name="title_not_empty"),

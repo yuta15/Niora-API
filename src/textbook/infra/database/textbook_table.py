@@ -7,6 +7,8 @@ from src.shared.infra.database import Base
 
 
 class TextbookTable(Base):
+    """Textbookを永続化するTable Model。"""
+
     __tablename__ = "textbook"
     __table_args__ = (CheckConstraint("title <> ''", name="title_not_empty"),)
 

@@ -53,19 +53,21 @@ src/
     └── infra/
         └── database/
             ├── textbook_table.py
-            └── chapter_table.py
+            ├── textbook_repository.py
+            ├── chapter_table.py
+            └── chapter_repository.py
 ```
 
 - `src/shared/infra/database/base.py`は、共通のDeclarative Base、`MetaData`、Constraint命名規則を定義する
 - `src/shared/infra/database/engine.py`は、Application用設定から同期`Engine`を生成するFactoryを定義する
 - `src/shared/infra/database/session.py`は、`Engine`へbindした同期`sessionmaker`を生成するFactoryを定義する
 - `src/shared/infra/database/unit_of_work.py`は、注入された`Session`へTransaction操作を委譲するUnit of Workを定義する
-- `src/textbook/infra/database/textbook_table.py`は、TextbookのTable Modelを定義する
-- `src/textbook/infra/database/chapter_table.py`は、ChapterのTable Modelを定義する
+- `src/textbook/infra/database/textbook_*.py`は、TextbookのTable Model、Repository実装、Domain Entity生成を定義する
+- `src/textbook/infra/database/chapter_*.py`は、ChapterのTable Model、Repository実装、Domain Entity生成を定義する
 - Module固有のTable Modelを`src/shared`へ配置しない
 - FactoryはProcess singletonを内部に保持せず、Composition RootがApplication Processごとに1回生成する
 - Sessionの生成と解放、およびRepositoryの保持と生成はUnit of Workの責務外とする
-- `database` PackageにはDatabase技術基盤を配置し、Repository実装は含めない
+- Module固有の`database` Packageには、そのModuleが所有するTable ModelとRepository実装を配置する
 
 ## マイグレーション
 
