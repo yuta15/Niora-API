@@ -1,9 +1,13 @@
+from dataclasses import replace
+from typing import cast
 from uuid import UUID
 
 import pytest
+from sqlalchemy import Engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from scripts.seed_catalog import _generate_catalog, _seed_catalog, _SeedCatalogConflictError
+from scripts.seed_catalog import _generate_catalog, _seed_catalog
 from src.textbook.infra.database import (
     ChapterTable,
     SqlAlchemyChapterRepository,
@@ -91,40 +95,34 @@ def test_seed_catalog_success_is_idempotent_and_preserves_non_seed_rows(mysql_se
 
 
 @pytest.mark.integration
-def test_seed_catalog_failure_rolls_back_when_chapter_position_is_occupied(mysql_session: Session) -> None:
-    """Chapter位置の競合時に、Seed対象と既存行を変更せずrollbackすることを確認する。"""
-    catalog = _generate_catalog(2, 1)
-    conflict_chapter_id = UUID("70000000-0000-0000-0000-000000000003")
-    mysql_session.add_all(
-        [
-            TextbookTable(id=catalog[0].id, title="Before seed"),
-            TextbookTable(id=catalog[1].id, title=catalog[1].title),
-        ]
+def test_seed_catalog_failure_rolls_back_writes_when_chapter_flush_fails(mysql_session: Session) -> None:
+    """Textbook更新後のChapter書込み失敗時に、別接続から部分更新が見えないことを確認する。"""
+    catalog = _generate_catalog(1, 2)
+    textbook = catalog[0]
+    catalog_with_duplicate_positions = (
+        replace(
+            textbook,
+            chapters=(
+                textbook.chapters[0],
+                replace(textbook.chapters[1], position=textbook.chapters[0].position),
+            ),
+        ),
     )
-    mysql_session.flush()
-    mysql_session.add(
-        ChapterTable(
-            id=conflict_chapter_id,
-            textbook_id=catalog[1].id,
-            title="Existing chapter",
-            position=0,
-            content="Keep this chapter",
-            workspace_preset_key=None,
-        )
-    )
+    mysql_session.add(TextbookTable(id=textbook.id, title="Before seed"))
     mysql_session.commit()
 
-    with pytest.raises(_SeedCatalogConflictError):
+    with pytest.raises(IntegrityError):
         with mysql_session.begin():
-            _seed_catalog(mysql_session, catalog)
+            _seed_catalog(mysql_session, catalog_with_duplicate_positions)
 
-    textbook_repository = SqlAlchemyTextbookRepository(mysql_session)
-    chapter_repository = SqlAlchemyChapterRepository(mysql_session)
-    textbook = textbook_repository.get(catalog[0].id)
-    chapters = chapter_repository.list(catalog[1].id)
+    engine = cast(Engine, mysql_session.get_bind())
+    mysql_session.connection()
+    with engine.connect() as verification_connection, Session(bind=verification_connection) as verification_session:
+        textbook_repository = SqlAlchemyTextbookRepository(verification_session)
+        chapter_repository = SqlAlchemyChapterRepository(verification_session)
+        persisted_textbook = textbook_repository.get(textbook.id)
+        persisted_chapters = chapter_repository.list(textbook.id)
 
-    assert textbook is not None
-    assert textbook.title.value == "Before seed"
-    assert [(chapter.id, chapter.title.value, chapter.content.value) for chapter in chapters] == [
-        (conflict_chapter_id, "Existing chapter", "Keep this chapter")
-    ]
+    assert persisted_textbook is not None
+    assert persisted_textbook.title.value == "Before seed"
+    assert persisted_chapters == []
