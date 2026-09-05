@@ -1,3 +1,4 @@
+from src.shared.application.ports import UnitOfWork
 from src.textbook.application.models import ChapterSummary, GetTextbookInput, GetTextbookOutput
 from src.textbook.application.ports import ChapterRepository, TextbookRepository
 
@@ -9,27 +10,30 @@ class GetTextbook:
         self,
         textbook_repository: TextbookRepository,
         chapter_repository: ChapterRepository,
+        unit_of_work: UnitOfWork,
     ) -> None:
         self._textbook_repository = textbook_repository
         self._chapter_repository = chapter_repository
+        self._unit_of_work = unit_of_work
 
     def execute(self, input: GetTextbookInput) -> GetTextbookOutput | None:
         """指定された教科書を取得し、存在しない場合はNoneを返す。"""
-        textbook = self._textbook_repository.get(input.textbook_id)
-        if textbook is None:
-            return None
+        with self._unit_of_work:
+            textbook = self._textbook_repository.get(input.textbook_id)
+            if textbook is None:
+                return None
 
-        chapters = self._chapter_repository.list(input.textbook_id)
+            chapters = self._chapter_repository.list(input.textbook_id)
 
-        return GetTextbookOutput(
-            id=textbook.id,
-            title=textbook.title.value,
-            chapters=tuple(
-                ChapterSummary(
-                    id=chapter.id,
-                    title=chapter.title.value,
-                    position=chapter.position.value,
-                )
-                for chapter in chapters
-            ),
-        )
+            return GetTextbookOutput(
+                id=textbook.id,
+                title=textbook.title.value,
+                chapters=tuple(
+                    ChapterSummary(
+                        id=chapter.id,
+                        title=chapter.title.value,
+                        position=chapter.position.value,
+                    )
+                    for chapter in chapters
+                ),
+            )

@@ -4,15 +4,18 @@ import subprocess
 import sys
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
+from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL, Engine
 from sqlalchemy import create_engine as sqlalchemy_create_engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
+from src.api.main import create_app
 from src.shared.infra.database import create_engine, create_session_factory
 from src.shared.infra.settings import ApplicationDatabaseSettings, MigrationDatabaseSettings
 
@@ -225,3 +228,30 @@ def mysql_session(tmp_path: Path) -> Iterator[Session]:
                 "Databaseリソースの後始末に失敗しました",
                 cleanup_errors,
             )
+
+
+@pytest.fixture
+def mysql_api_client(mysql_session: Session) -> Iterator[TestClient]:
+    """テストデータ用Sessionとは分離したSession factoryでAPI Clientを提供する。"""
+    engine = cast(Engine, mysql_session.get_bind())
+    api_sessions: list[Session] = []
+
+    class TrackingSession(Session):
+        """実MySQLへ接続したAPI Sessionのcloseを記録する。"""
+
+        def __init__(self, **kwargs: Any) -> None:
+            super().__init__(**kwargs)
+            self.close_call_count = 0
+            api_sessions.append(self)
+
+        def close(self) -> None:
+            self.close_call_count += 1
+            super().close()
+
+    session_factory = cast(sessionmaker[Session], sessionmaker(bind=engine, class_=TrackingSession))
+    with TestClient(create_app(session_factory=session_factory)) as client:
+        yield client
+
+    for session in api_sessions:
+        assert isinstance(session, TrackingSession)
+        assert session.close_call_count == 1

@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from uuid import UUID
 
+from src.shared.application.ports import UnitOfWork
 from src.textbook.application.models import (
     ChapterSummary,
     GetTextbookInput,
@@ -19,6 +20,16 @@ from src.textbook.domain.entities import (
 TEXTBOOK_ID = UUID("d9e259cb-c537-451b-b38b-90443f553185")
 FIRST_CHAPTER_ID = UUID("35e2a8e4-b60c-412a-9406-ce999b15fcd3")
 SECOND_CHAPTER_ID = UUID("8498bf44-f8f8-42e8-bdb6-5f60b2b51b7c")
+
+
+class FakeUnitOfWork(UnitOfWork):
+    """GetTextbookのTransaction境界を実行するFake。"""
+
+    def _commit(self) -> None:
+        pass
+
+    def _rollback(self) -> None:
+        pass
 
 
 class FakeTextbookRepository(TextbookRepository):
@@ -69,7 +80,7 @@ def test_execute_success_returns_textbook_with_chapters() -> None:
             ),
         ]
     )
-    usecase = GetTextbook(textbook_repository, chapter_repository)
+    usecase = GetTextbook(textbook_repository, chapter_repository, FakeUnitOfWork())
 
     output = usecase.execute(GetTextbookInput(textbook_id=TEXTBOOK_ID))
 
@@ -86,7 +97,7 @@ def test_execute_success_returns_textbook_with_chapters() -> None:
 def test_execute_success_returns_none_without_loading_chapters_when_textbook_does_not_exist() -> None:
     """教科書が存在しない場合は章を取得せずNoneを返すことを確認する。"""
     chapter_repository = FakeChapterRepository([])
-    usecase = GetTextbook(FakeTextbookRepository([]), chapter_repository)
+    usecase = GetTextbook(FakeTextbookRepository([]), chapter_repository, FakeUnitOfWork())
 
     output = usecase.execute(GetTextbookInput(textbook_id=TEXTBOOK_ID))
 
