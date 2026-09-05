@@ -1,13 +1,16 @@
 UV ?= uv
 DOCKER_COMPOSE ?= docker compose
 
-.PHONY: install sync lint lint-fix format format-check typecheck architecture/imports test test-all test-cov \
+.PHONY: install sync dev lint lint-fix format format-check typecheck architecture/imports test test-all test-cov \
 	pre-commit-install pre-commit check db-up migrate seed-catalog db-down
 
 install: sync
 
 sync:
 	$(UV) sync
+
+dev:
+	$(UV) run fastapi dev src/api/main.py --host 127.0.0.1 --port 8000
 
 lint:
 	$(UV) run ruff check .

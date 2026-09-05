@@ -29,6 +29,7 @@ Niora APIは、教科書に対応したWorkspaceをk3s上に起動し、ブラ�
 * ドキュメントは日本語、コード/API/DB上の識別子は用語集の英語名を使う
 * 必要以上に変更範囲を広げない
 * 最終確認で最低限`make check`を成功させる
+* GitHubの操作はMCPを利用すること
 
 ### Python import
 
