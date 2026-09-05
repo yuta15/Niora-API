@@ -36,6 +36,7 @@ import-linter、外部サービスを使用しないテストが検証されま�
 | --- | --- |
 | 依存関係のインストール | `make install` |
 | 依存関係の同期 | `make sync` |
+| 開発サーバーの起動 | `make dev` |
 | Lint | `make lint` |
 | Lintの自動修正 | `make lint-fix` |
 | Format | `make format` |
@@ -57,6 +58,14 @@ import-linter、外部サービスを使用しないテストが検証されま�
 ```bash
 make test
 ```
+
+開発サーバーを起動する場合：
+
+```bash
+make dev
+```
+
+起動後は`http://127.0.0.1:8000/docs`でAPIドキュメントを確認できます。
 
 すべてのテスト（Integration、E2Eを含む）を実行する場合：
 
