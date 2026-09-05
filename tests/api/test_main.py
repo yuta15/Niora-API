@@ -3,7 +3,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from src.api.main import create_app
+from src.api import create_app
 from src.shared.infra.settings import ApplicationDatabaseSettings
 
 

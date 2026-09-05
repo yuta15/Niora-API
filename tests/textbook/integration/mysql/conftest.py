@@ -15,7 +15,7 @@ from sqlalchemy import URL, Engine
 from sqlalchemy import create_engine as sqlalchemy_create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from src.api.main import create_app
+from src.api import create_app
 from src.shared.infra.database import create_engine, create_session_factory
 from src.shared.infra.settings import ApplicationDatabaseSettings, MigrationDatabaseSettings
 

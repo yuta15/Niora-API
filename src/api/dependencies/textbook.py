@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from src.api.dependencies.database import provide_session
+from src.api.dependencies import provide_session
 from src.shared.application.ports import UnitOfWork
 from src.shared.infra.database import SqlAlchemyUnitOfWork
 from src.textbook.application.ports import ChapterRepository, TextbookRepository
