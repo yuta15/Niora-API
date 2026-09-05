@@ -45,6 +45,7 @@ import-linter、外部サービスを使用しないテストが検証されま�
 | 外部サービスを使用しないテスト | `make test` |
 | すべてのテスト | `make test-all` |
 | カバレッジ付きテスト | `make test-cov` |
+| 開発用Textbook/Chapterの投入 | `make seed-catalog` |
 | pre-commitの有効化 | `make pre-commit-install` |
 | pre-commitの全ファイル実行 | `make pre-commit` |
 | 変更を加えない総合チェック | `make check` |
@@ -68,6 +69,21 @@ make test-all
 ```bash
 make test-cov
 ```
+
+開発・検証用のTextbookとChapterを投入する場合（事前に`make db-up`と`make migrate`を実行）：
+
+```bash
+make seed-catalog
+```
+
+件数を指定する場合は、同じCLIを直接実行します。
+
+```bash
+uv run python -m scripts.seed_catalog --textbooks 2 --chapters-per-textbook 5
+```
+
+生成できるChapterは合計10件までです。`Textbook数 × TextbookごとのChapter数`が10を超える指定は、
+Databaseへ接続する前に拒否されます。
 
 ### 依存関係の追加
 

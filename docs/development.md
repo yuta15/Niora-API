@@ -28,6 +28,7 @@ MySQL AdapterとMigrationの実装時に、次の操作をMake targetとして�
 | --- | --- | --- |
 | 開発・Integrationテスト用MySQLの起動 | `make db-up` | 固定したMySQL 9.7 GA ImageをDocker Composeで起動し、Healthcheckを待つ |
 | Migrationの適用 | `make migrate` | `uv run alembic upgrade head` |
+| 開発用Catalogの投入 | `make seed-catalog` | `uv run python -m scripts.seed_catalog --textbooks 2 --chapters-per-textbook 5` |
 | MySQLの停止とVolume削除 | `make db-down` | Docker ComposeのContainerとVolumeを削除する |
 
 Integrationテストの標準実行順序は次のとおりです。
@@ -40,6 +41,19 @@ make db-down
 ```
 
 テスト失敗時も`make db-down`を実行します。Databaseごとの分離と後始末はpytest Fixtureが担当します。
+
+### 開発用Catalog
+
+`make seed-catalog`は、決定的なUUIDを持つ開発・検証用TextbookとChapterを投入します。Textbook数とTextbookごとの
+Chapter数を変更する場合は、次の引数を指定します。
+
+```bash
+uv run python -m scripts.seed_catalog --textbooks <Textbook数> --chapters-per-textbook <Chapter数>
+```
+
+同じ引数で繰り返し実行しても重複せず、生成対象外の既存行は変更されません。Chapterの位置を別の既存Chapterが
+占有している場合は、全体をrollbackして失敗します。生成できるChapterは合計10件までで、
+`Textbook数 × TextbookごとのChapter数`が10を超える場合はDatabaseへ接続する前に失敗します。
 
 ComposeのMySQLは、Migration用UserにSchema変更権限を与え、Application用Userには対象Databaseの
 `SELECT`、`INSERT`、`UPDATE`、`DELETE`だけを与えます。Application用Userは
