@@ -17,3 +17,4 @@ class GetChapterOutput:
     id: UUID
     title: str
     content: str
+    workspace_preset_key: str | None

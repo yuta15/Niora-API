@@ -110,6 +110,7 @@ def test_get_chapter_success_converts_output_to_response_schema(mocker: MockerFi
         id=CHAPTER_ID,
         title="基本構文",
         content="print('Hello, world!')",
+        workspace_preset_key=None,
     )
 
     response = get_chapter(TEXTBOOK_ID, CHAPTER_ID, use_case)
@@ -118,6 +119,7 @@ def test_get_chapter_success_converts_output_to_response_schema(mocker: MockerFi
         id=CHAPTER_ID,
         title="基本構文",
         content="print('Hello, world!')",
+        workspace_preset_key=None,
     )
     use_case.execute.assert_called_once_with(
         GetChapterInput(

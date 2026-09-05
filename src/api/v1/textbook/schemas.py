@@ -75,8 +75,14 @@ class GetChapterResponse(BaseModel):
     id: UUID
     title: str
     content: str
+    workspace_preset_key: str | None
 
     @classmethod
     def from_output(cls, output: GetChapterOutput) -> GetChapterResponse:
         """Applicationの出力をAPIレスポンスへ変換する。"""
-        return cls(id=output.id, title=output.title, content=output.content)
+        return cls(
+            id=output.id,
+            title=output.title,
+            content=output.content,
+            workspace_preset_key=output.workspace_preset_key,
+        )
