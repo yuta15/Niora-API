@@ -1,8 +1,8 @@
 # 0007: Workspaceを1つ以上のPodで構成しk3sを状態の正とする
 
-> **後続の決定:** WorkspaceDefinitionがPod構成と接続対象を持つ責務は、
-> [ADR 0009](0009-separate-workspace-domain-and-runtime-adapters.md)で更新した。
-> 実行環境の詳細とConnection方式はAdapterが扱う。k3sを実行状態の正とする決定は継続する。
+> **後続の決定:** WorkspaceDefinitionとWorkspaceSessionをdesired stateとしてMySQLへ永続化し、Jobからk3sへ収束させる責務を
+> [ADR 0014](0014-persist-workspace-desired-state-and-apply-with-jobs.md)で決定した。k3sをobserved stateの正とする決定、
+> Workspaceを1つ以上のPodで構成する決定、およびPod execによる接続方式は継続する。
 
 ## 背景
 

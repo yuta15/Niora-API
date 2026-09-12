@@ -1,8 +1,9 @@
 # 0004: ソフトウェア構成にクリーンアーキテクチャを採用する
 
 > **後続の決定:** WorkspaceモジュールのDomainとAdapterの責務は、
-> [ADR 0009](0009-separate-workspace-domain-and-runtime-adapters.md)で具体化した。
-> v0.0.1ではWorkspaceDefinitionをDomain Entityとして扱わない。
+> [ADR 0009](0009-separate-workspace-domain-and-runtime-adapters.md)で具体化した後、
+> [ADR 0014](0014-persist-workspace-desired-state-and-apply-with-jobs.md)で更新した。
+> WorkspaceDefinitionを不変なDomain Modelとして扱い、WorkspaceDefinitionとWorkspaceSessionをMySQLへ永続化する。
 
 ## 背景
 

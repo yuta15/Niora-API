@@ -1,5 +1,9 @@
 # 0009: Workspaceの業務責務と実行環境の技術責務を分離する
 
+> **後続の決定:** WorkspaceDefinitionをDomainへ再導入し、Preset解決後のDefinitionとWorkspaceSessionをMySQLへ永続化して
+> Jobからk3sへ収束させる方針を[ADR 0014](0014-persist-workspace-desired-state-and-apply-with-jobs.md)で決定した。
+> WorkspaceDefinitionをDomainへ置かず、Runtime InfrastructureがWorkspacePresetKeyから構成を解決する決定を置き換える。
+
 ## 背景
 
 Nioraでは、章に対応する学習環境の起動から期限切れ削除までを扱う。これまでWorkspaceDefinitionが、環境の種類と、
