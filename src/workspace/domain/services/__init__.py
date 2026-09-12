@@ -1,0 +1,1 @@
+"""WorkspaceのDomain Model。"""
