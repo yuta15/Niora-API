@@ -1,5 +1,9 @@
 # 0010: WorkspaceSessionの情報をk3sリソースに保持する
 
+> **後続の決定:** WorkspaceDefinitionとWorkspaceSessionをdesired stateとしてMySQLへ永続化する方針を
+> [ADR 0014](0014-persist-workspace-desired-state-and-apply-with-jobs.md)で決定し、WorkspaceSessionをk3s Metadataだけに保存して
+> 復元する決定を置き換えた。k3s MetadataはMySQL上のdesired stateとの識別と照合にだけ使用する。
+
 ## 背景
 
 Workspaceの作成後に状態確認、接続、明示的な終了、期限切れ削除を行うには、WorkspaceSessionとk3s上の実行環境を

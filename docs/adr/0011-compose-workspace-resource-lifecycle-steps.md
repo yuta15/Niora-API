@@ -1,5 +1,9 @@
 # 0011: Workspaceリソースのライフサイクルを順序付きStepで構成する
 
+> **後続の決定:** MySQL上のWorkspaceDefinitionとWorkspaceSessionから期待リソース集合を毎回生成し、Jobでk3sへ収束させる方針を
+> [ADR 0014](0014-persist-workspace-desired-state-and-apply-with-jobs.md)で決定した。WorkspacePresetKeyからPlanを解決し、
+> 手続き的なStep列を再試行単位とする決定を置き換える。複数リソースが非原子的で、順序と冪等な再試行が必要な原則は維持する。
+
 ## 背景
 
 WorkspaceSessionに対応する実行環境は、PodだけでなくService、NetworkPolicyなど複数のk3sリソースで構成される。
