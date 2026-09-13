@@ -16,7 +16,7 @@ from src.workspace.application.ports import (
     WorkspaceRuntime,
     WorkspaceSessionIdGenerator,
 )
-from src.workspace.domain.entities import WorkspacePresetKey, WorkspaceSession
+from src.workspace.domain import WorkspacePresetKey, WorkspaceSession
 
 
 class CreateWorkspace:

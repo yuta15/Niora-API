@@ -22,7 +22,7 @@ from src.workspace.application.ports import (
     WorkspaceSessionIdGenerator,
 )
 from src.workspace.application.usecases import CreateWorkspace
-from src.workspace.domain.entities import WorkspacePresetKey, WorkspaceSession
+from src.workspace.domain import WorkspacePresetKey, WorkspaceSession
 
 TEXTBOOK_ID = UUID("d9e259cb-c537-451b-b38b-90443f553185")
 CHAPTER_ID = UUID("35e2a8e4-b60c-412a-9406-ce999b15fcd3")

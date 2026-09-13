@@ -2,7 +2,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from src.workspace.domain.entities import WorkspacePresetKey
+from src.workspace.domain import WorkspacePresetKey
 
 
 @pytest.mark.parametrize("value", ["a", "a" * 128])

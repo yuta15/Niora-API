@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from src.workspace.domain.entities import WorkspacePresetKey
+from src.workspace.domain import WorkspacePresetKey
 
 
 class WorkspaceDefinitionIdResolver(ABC):

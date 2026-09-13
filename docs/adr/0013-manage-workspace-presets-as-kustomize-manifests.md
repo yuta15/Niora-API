@@ -1,6 +1,6 @@
 # 0013: WorkspacePresetをKustomize ManifestとしてGit管理する
 
-> **後続の決定:** Preset入力の解決後にWorkspaceDefinitionを生成してMySQLへ永続化し、Kubernetes Infrastructureが
+> **後続の決定:** システム提供WorkspacePresetをDomainで定義して事前登録し、Kubernetes Infrastructureが
 > Definitionからリソースを直接生成する方針を[ADR 0014](0014-persist-workspace-desired-state-and-apply-with-jobs.md)で決定した。
 > WorkspacePresetをKustomize Manifestとして管理し、Workspace RuntimeでKustomizeを使用する決定を置き換える。
 

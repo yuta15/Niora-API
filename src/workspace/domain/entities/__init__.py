@@ -1,3 +1,4 @@
+from .preset import WorkspacePreset
 from .terminal_exec_access_point import TerminalExecAccessPoint
 from .value_objects import WorkspacePresetKey
 from .workspace_definition import WorkspaceComponent, WorkspaceDefinition
@@ -7,6 +8,7 @@ from .workspace_status import WorkspaceStatus
 __all__ = [
     "WorkspaceComponent",
     "WorkspaceDefinition",
+    "WorkspacePreset",
     "WorkspacePresetKey",
     "WorkspaceSession",
     "WorkspaceStatus",

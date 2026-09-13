@@ -1,6 +1,6 @@
 import pytest
 
-from src.workspace.domain.entities import TerminalExecAccessPoint, WorkspaceComponent
+from src.workspace.domain import TerminalExecAccessPoint, WorkspaceComponent
 
 COMPONENT_KEY = "ubuntu"
 IMAGE = "ubuntu:latest"

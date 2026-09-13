@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from src.workspace.domain.entities import WorkspacePresetKey
+from src.workspace.domain import WorkspacePresetKey
 
 
 class ChapterNotFoundError(Exception):

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.workspace.domain.entities import WorkspaceDefinition, WorkspaceSession, WorkspaceStatus
+from src.workspace.domain import WorkspaceDefinition, WorkspaceSession, WorkspaceStatus
 
 
 @dataclass(frozen=True)

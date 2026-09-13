@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from src.workspace.domain.entities import WorkspaceStatus
+from src.workspace.domain import WorkspaceStatus
 
 
 @dataclass(frozen=True)

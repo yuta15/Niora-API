@@ -91,8 +91,10 @@ flowchart LR
 DomainとApplicationは外部技術に依存せず、MySQL、k3s、外部認証、接続方式との差分をAdapterで吸収します。詳細は[ADR 0004](adr/0004-use-clean-architecture.md)を参照してください。
 
 Workspace Domainは、実行環境の定義を不変なWorkspaceDefinition、Definition IDと有効期限を持つ利用単位をWorkspaceSessionとして
-扱います。ApplicationはPreset入力の解決、WorkspaceDefinitionとWorkspaceSessionの永続化、Job起動を調整します。
-AdapterはPresetの取得、MySQLへの永続化、k3sへの適用、接続方式を実装します。詳細は
+扱います。また、WorkspacePresetKeyと完成済みWorkspaceDefinitionを組にしたWorkspacePresetをDomain Modelとします。
+システム提供Preset KeyとDefinitionはDomainの別々のCatalogで管理し、WorkspacePresetProviderが対応付けます。
+Applicationはシステム提供Presetの初期登録、WorkspaceDefinitionとWorkspaceSessionの永続化、Job起動を
+調整します。AdapterはMySQLへの永続化、k3sへの適用、接続方式を実装します。詳細は
 [ADR 0014](adr/0014-persist-workspace-desired-state-and-apply-with-jobs.md)を参照してください。
 
 API AdapterにはFastAPIを使用します。APIのバージョン、ドメインrouter、Schema、依存性注入の構成は
@@ -111,8 +113,23 @@ PyMySQLを使用する各モジュールの外部実装からDatabaseへ接続�
 [ADR 0008](adr/0008-use-sqlmodel-pymysql-and-alembic.md)、SQLAlchemyとTable Modelの所有境界は
 [ADR 0012](adr/0012-use-sqlalchemy-and-separate-database-infrastructure.md)を参照してください。
 
-Chapterは対応する実行環境をWorkspacePresetKeyで参照します。WorkspacePresetは、システム提供のWorkspaceDefinitionを
-生成するための入力としてApplicationがInfrastructureのPortを介して解決し、Domain Modelには含めません。
+Chapterは対応する実行環境をWorkspacePresetKeyで参照します。WorkspacePresetは、WorkspacePresetKeyと完成済みの
+WorkspaceDefinitionを組として保持するDomain Modelです。どのPresetを、どのKeyとDefinitionで提供するかは、開発者が
+`domain/entities/preset`配下のPreset Key CatalogとDefinition Catalogへ分けてGit管理します。
+`domain/services`配下のWorkspacePresetProviderが両Catalogの対応を保持し、提供中のPreset Key一覧、すべてのWorkspacePreset、
+または指定KeyのWorkspacePresetを返します。
+利用側は個別のPreset定義やCatalog件数に依存せず、このProviderを通して取得します。
+
+Preset Key、WorkspaceDefinition、および対応表は不変なDomainデータとしてModule Scopeで保持します。Provider InstanceはGlobalにせず、
+DomainのFactoryで生成してApplicationの構成時に初期登録UseCaseへ注入します。
+
+実行時の引数を受け取らない初期登録UseCaseが、注入されたWorkspacePresetProviderから全Presetを取得し、各WorkspacePresetを永続化Portへ渡します。
+Database AdapterはWorkspaceDefinitionとWorkspacePresetKeyからDefinition IDへの対応へ分けてMySQLへ保存し、UseCaseはCatalog全体を
+1つのUnit of Workで確定します。Workspace作成時はDomainのProviderやCatalogではなくMySQLに保存した対応だけを利用します。
+Preset入力Model、外部からPresetを取得するPort、およびPresetごとの登録入力は設けません。
+
+将来ユーザー定義環境を追加する場合はPresetとは別のUseCaseでWorkspaceDefinitionを作成し、UserまたはChapter固有の情報と
+Definition IDを関連付けます。供給元ごとの入力形式は共通化せず、保存後は同じWorkspaceDefinition Repositoryを利用します。
 
 WorkspaceDefinition、WorkspacePresetKeyからDefinition IDへの対応、およびWorkspaceSessionをMySQLへ永続化します。
 WorkspaceDefinitionとWorkspaceSessionを実行環境のdesired stateの正とし、k3s上のリソースをobserved stateの正とします。
@@ -137,7 +154,8 @@ k3sからobserved stateとして取得します。
 
 すべてのWorkspaceSessionに対応する実行環境は`ns-niora-workspaces`を共有し、LabelとNetworkPolicyで相互の通信を分離します。詳細は[ADR 0006](adr/0006-share-k3s-workspace-namespace.md)を参照してください。
 
-APIはPresetKeyに対応するWorkspaceDefinitionを解決し、そのDefinition IDを持つWorkspaceSessionをMySQLへCommitした後、WorkspaceSession IDを
+APIから呼び出されたApplicationは、MySQL実装のResolverを通してPresetKeyに対応するDefinition IDを解決し、そのIDを持つ
+WorkspaceSessionをMySQLへCommitした後、WorkspaceSession IDを
 指定してApply Jobの起動を要求します。Apply JobはMySQLからdesired stateを取得し、Kubernetes Infrastructureを通して
 WorkspaceSessionに対応する1つ以上のPodと必要なService、NetworkPolicyを生成してk3sへ適用します。WorkspaceSession IDと
 リソースごとの論理キーから決定的なリソース名を生成し、k3sのobserved stateとの差分へ冪等に収束させます。
