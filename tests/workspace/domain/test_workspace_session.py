@@ -3,38 +3,38 @@ from uuid import UUID
 
 import pytest
 
-from src.workspace.domain.entities import WorkspacePresetKey, WorkspaceSession
+from src.workspace.domain.entities import WorkspaceSession
 
 WORKSPACE_SESSION_ID = UUID("b578c2b7-d5c2-4275-97be-a89665729719")
 OTHER_WORKSPACE_SESSION_ID = UUID("a3239992-e19a-49bc-87c7-31ad9d502c69")
-PRESET_KEY = WorkspacePresetKey("ws-ubuntu-24_04")
-OTHER_PRESET_KEY = WorkspacePresetKey("ws-ubuntu-26_04")
+WORKSPACE_DEFINITION_ID = UUID("dd1c64fa-8763-4f06-aa92-929d08d04dd0")
+OTHER_WORKSPACE_DEFINITION_ID = UUID("fc2cb1b5-edf5-474e-843f-d78538cb952e")
 EXPIRES_AT = datetime(2026, 8, 2, 15, 0, tzinfo=UTC)
 
 
 def _workspace_session() -> WorkspaceSession:
     return WorkspaceSession(
         id=WORKSPACE_SESSION_ID,
-        preset_key=PRESET_KEY,
+        definition_id=WORKSPACE_DEFINITION_ID,
         expires_at=EXPIRES_AT,
     )
 
 
 def test_init_success_exposes_workspace_session_properties() -> None:
-    """WorkspaceSessionの識別子、プリセットキー、有効期限を参照できることを確認する。"""
+    """WorkspaceSessionの識別子、Definition ID、有効期限を参照できることを確認する。"""
     workspace_session = _workspace_session()
 
     assert workspace_session.id == WORKSPACE_SESSION_ID
-    assert workspace_session.preset_key == PRESET_KEY
+    assert workspace_session.definition_id == WORKSPACE_DEFINITION_ID
     assert workspace_session.expires_at == EXPIRES_AT
 
 
-@pytest.mark.parametrize("argument_name", ["id", "preset_key", "expires_at"])
+@pytest.mark.parametrize("argument_name", ["id", "definition_id", "expires_at"])
 def test_init_failure_rejects_invalid_argument_type(argument_name: str) -> None:
     """WorkspaceSessionを所定の型以外から生成できないことを確認する。"""
     arguments: dict[str, object] = {
         "id": WORKSPACE_SESSION_ID,
-        "preset_key": PRESET_KEY,
+        "definition_id": WORKSPACE_DEFINITION_ID,
         "expires_at": EXPIRES_AT,
     }
     arguments[argument_name] = object()
@@ -48,7 +48,7 @@ def test_init_failure_rejects_expiration_without_timezone() -> None:
     with pytest.raises(ValueError):
         WorkspaceSession(
             id=WORKSPACE_SESSION_ID,
-            preset_key=PRESET_KEY,
+            definition_id=WORKSPACE_DEFINITION_ID,
             expires_at=datetime(2026, 8, 2, 15, 0),
         )
 
@@ -82,7 +82,7 @@ def test_is_expired_failure_rejects_non_datetime_value() -> None:
     ("attribute_name", "new_value"),
     [
         ("id", OTHER_WORKSPACE_SESSION_ID),
-        ("preset_key", OTHER_PRESET_KEY),
+        ("definition_id", OTHER_WORKSPACE_DEFINITION_ID),
         ("expires_at", EXPIRES_AT + timedelta(hours=1)),
     ],
 )

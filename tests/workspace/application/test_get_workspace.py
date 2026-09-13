@@ -1,15 +1,27 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
 
 from src.workspace.application import WorkspaceNotFoundError
-from src.workspace.application.models import GetWorkspaceInput, GetWorkspaceOutput
+from src.workspace.application.models import (
+    GetWorkspaceInput,
+    GetWorkspaceOutput,
+    WorkspaceComponentOutput,
+)
 from src.workspace.application.ports import WorkspaceRuntime, WorkspaceRuntimeSnapshot
 from src.workspace.application.usecases import GetWorkspace
-from src.workspace.domain.entities import WorkspacePresetKey, WorkspaceSession, WorkspaceStatus
+from src.workspace.domain.entities import (
+    TerminalExecAccessPoint,
+    WorkspaceComponent,
+    WorkspaceDefinition,
+    WorkspaceSession,
+    WorkspaceStatus,
+)
 
 WORKSPACE_SESSION_ID = UUID("b578c2b7-d5c2-4275-97be-a89665729719")
-WORKSPACE_PRESET_KEY = WorkspacePresetKey("ws-ubuntu-24_04")
+WORKSPACE_DEFINITION_ID = UUID("0d4c3f6d-01fc-49da-8d72-b8a3a7f99425")
+WORKSPACE_EXPIRES_AT = datetime(2026, 9, 14, tzinfo=UTC)
 
 
 class FakeWorkspaceRuntime(WorkspaceRuntime):
@@ -29,10 +41,31 @@ class FakeWorkspaceRuntime(WorkspaceRuntime):
 
 
 def test_execute_success_returns_workspace_runtime_snapshot() -> None:
-    """指定したSessionのPresetと状態をRuntimeのSnapshotから返すことを確認する。"""
+    """指定したSessionの情報、Definitionの構成、および状態を返すことを確認する。"""
+    session = WorkspaceSession(
+        id=WORKSPACE_SESSION_ID,
+        definition_id=WORKSPACE_DEFINITION_ID,
+        expires_at=WORKSPACE_EXPIRES_AT,
+    )
+    definition = WorkspaceDefinition(
+        definition_id=WORKSPACE_DEFINITION_ID,
+        components=(
+            WorkspaceComponent(
+                component_key="ubuntu",
+                image="ubuntu:latest",
+                startup_command=("sleep", "infinity"),
+                terminal_exec=TerminalExecAccessPoint(("/bin/bash",)),
+            ),
+            WorkspaceComponent(
+                component_key="database",
+                image="mysql:9.7",
+            ),
+        ),
+    )
     runtime = FakeWorkspaceRuntime(
         WorkspaceRuntimeSnapshot(
-            preset_key=WORKSPACE_PRESET_KEY,
+            session=session,
+            definition=definition,
             status=WorkspaceStatus.READY,
         )
     )
@@ -42,8 +75,22 @@ def test_execute_success_returns_workspace_runtime_snapshot() -> None:
 
     assert runtime.received_workspace_session_ids == [WORKSPACE_SESSION_ID]
     assert output == GetWorkspaceOutput(
-        preset_key=WORKSPACE_PRESET_KEY,
+        session_id=WORKSPACE_SESSION_ID,
+        definition_id=WORKSPACE_DEFINITION_ID,
+        expires_at=WORKSPACE_EXPIRES_AT,
         status=WorkspaceStatus.READY,
+        components=(
+            WorkspaceComponentOutput(
+                component_key="ubuntu",
+                image="ubuntu:latest",
+                terminal_exec_available=True,
+            ),
+            WorkspaceComponentOutput(
+                component_key="database",
+                image="mysql:9.7",
+                terminal_exec_available=False,
+            ),
+        ),
     )
 
 

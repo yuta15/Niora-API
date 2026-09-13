@@ -20,7 +20,7 @@ Workspaceは、1つ以上のPodとNetworkPolicyなど複数のKubernetesリソ�
 
 ### WorkspaceDefinition
 
-`WorkspaceDefinition`をWorkspace Domainへ再導入し、利用者へ提供する実行環境の確定済み構成を表す不変なDomain Modelとする。
+`WorkspaceDefinition`をWorkspace Domainへ再導入し、利用者へ提供する実行環境の定義を表す不変なDomain Modelとする。
 
 ```text
 WorkspaceDefinition
@@ -30,6 +30,7 @@ WorkspaceDefinition
     ├── image
     ├── startup_command: tuple[str, ...] | None
     └── terminal_exec: TerminalExecAccessPoint | None
+        └── command: NonEmpty[tuple[str, ...]]
 ```
 
 - `definition_id`には永続化時に発行するUUIDを使用する
@@ -41,8 +42,11 @@ WorkspaceDefinition
 - v0.0.1では1 Componentを1コンテナ相当として扱う
 - `TerminalExecAccessPoint`はComponentの子とし、Componentごとに最大1つだけ保持する
 - Terminal接続先は`component_key`で特定し、`access_point_key`は持たない
-- `image`にはRegistry、Repository、Digestを含む解決済みのOCI Image参照を保持し、Tagから実行時に再解決しない
-- `startup_command`は未指定、またはShell文字列ではないargv全体として保持する
+- `image`には実行に使用するOCI Imageを識別する空でない参照文字列を保持し、TagまたはDigestのどちらかへDomainでは制限しない
+- OCI Imageの参照を別のDomain Modelへ分けず、実際に展開されたImage IDやDigestはk3sからobserved stateとして取得する
+- `startup_command`は未指定、またはShell文字列ではない空でないargv全体として保持する
+- `TerminalExecAccessPoint.command`は`/bin/bash`などTerminal接続時に実行する空でないargv全体として保持する
+- argvの実行ファイルは空文字列を許可せず、各要素にNULを許可しない
 
 Pod、Service、NetworkPolicy、Label、AnnotationなどのKubernetes固有概念はWorkspaceDefinitionへ含めない。共通の
 Security設定など、利用者へ提供する実行環境の構成ではないKubernetes固有PolicyはInfrastructureが扱う。
@@ -50,8 +54,8 @@ Security設定など、利用者へ提供する実行環境の構成ではない
 ### Presetとの境界
 
 WorkspacePresetは、システム提供WorkspaceDefinitionを生成するための入力であり、Domain Modelとしない。Preset固有の値は、
-WorkspaceDefinitionを作成する前にApplicationがInfrastructureのPortを介して解決する。ImageはOCI Registry上のDigestへ固定し、
-省略値や生成パラメータも確定させてからWorkspaceDefinitionを生成する。
+WorkspaceDefinitionを作成する前にApplicationがInfrastructureのPortを介して解決する。ImageはPresetが指定するOCI Image参照を
+そのままWorkspaceComponentへ保持し、WorkspaceDefinitionの生成時にOCI Registry上のDigestへ固定することは要求しない。
 
 生成したWorkspaceDefinitionと、WorkspacePresetKeyからDefinition IDへの対応をMySQLへ別々に保存する。1つの
 WorkspacePresetKeyは1つのDefinition IDへ不変に対応させる。Presetの構成を変更するときは、新しいWorkspaceDefinitionと
@@ -63,12 +67,18 @@ WorkspacePresetKeyは1つのDefinition IDへ不変に対応させる。Presetの
 
 ### desired stateとobserved state
 
-WorkspaceDefinitionとWorkspaceSessionをMySQLへ永続化する。WorkspaceSessionは作成時に選択したDefinition IDを不変に参照し、
-WorkspaceSession ID、有効期限、および実行環境を存在させるか削除するかというライフサイクル上の意図を保持する。
+WorkspaceDefinitionとWorkspaceSessionをMySQLへ永続化する。WorkspaceSessionはWorkspaceSession ID、作成時に解決した
+WorkspaceDefinitionのDefinition ID、および有効期限を保持する。WorkspacePresetKeyからDefinition IDへの対応はWorkspace作成時の
+Definition選択にだけ使用し、作成済みWorkspaceSessionはDefinition IDからWorkspaceDefinitionを直接解決する。
 
-WorkspaceDefinitionとWorkspaceSessionの組み合わせを、作成、再適用、および削除へ収束させるdesired stateの正とする。
+有効期限内のWorkspaceSessionがMySQLに存在する場合は、対応するWorkspaceDefinitionの実行環境を存在させるdesired stateとする。
+WorkspaceSessionが存在しない場合、または有効期限を過ぎた場合は、その実行環境を存在させないdesired stateとする。
+WorkspaceDefinitionとWorkspaceSessionを、作成、再適用、削除へ収束させるdesired stateの正とする。
 k3s上に存在するリソースをobserved stateの正とし、Podなどの実行状態をMySQLへ状態の正として複製しない。最終試行時刻や
 エラーなどを運用情報として保存する場合も、実行状態の判断にはk3sから取得したobserved stateを使用する。
+
+WorkspaceComponentの`image`がTagを含む場合、同じ参照からRegistryが異なるImageを返す可能性を許容する。
+WorkspaceDefinitionが固定するのはOCI Imageの参照文字列までとし、実際に展開されたImage IDやDigestはk3sのobserved stateとして扱う。
 
 WorkspaceDefinitionまたはWorkspaceSessionをk3sリソース、Label、Annotation、リソース名から復元しない。k3s Metadataは、
 MySQL上のdesired stateと実行中リソースを識別および照合するためだけに使用する。
@@ -78,11 +88,12 @@ Workspaceの一時ファイルなど、実行環境内の利用者データを�
 ### Jobによる適用
 
 複数のKubernetesリソースを適用する処理は、常駐Controllerではなく、一回実行して終了するJobから行う。APIは
-WorkspaceDefinitionとWorkspaceSessionをMySQLのTransactionで保存してCommitした後、WorkspaceSession IDを指定して
-Apply Jobの起動を要求する。JobへWorkspaceDefinition、Preset、Manifestを受け渡さない。
+PresetKeyに対応するWorkspaceDefinitionを解決し、そのDefinition IDを持つWorkspaceSessionをMySQLのTransactionで保存して
+Commitした後、WorkspaceSession IDを指定してApply Jobの起動を要求する。JobへWorkspaceDefinition、Preset、Manifestを受け渡さない。
 
 Apply JobはInbound AdapterとしてApplicationの適用UseCaseを呼び出す。適用UseCaseはWorkspaceSession IDからMySQL上の
-WorkspaceSessionとWorkspaceDefinitionを取得し、Infrastructure非依存のPortを通してk3sへ収束を要求する。
+WorkspaceSessionと、Sessionが直接参照するWorkspaceDefinitionを取得し、Infrastructure非依存のPortを通してk3sへ収束を要求する。
+WorkspaceSessionが存在しない場合は、WorkspaceSession IDに対応するk3sリソースの削除へ収束させる。
 
 Kubernetes Infrastructureは、WorkspaceDefinitionとWorkspaceSessionから期待するリソース集合と適用順序を決定的に生成する。
 リソースごとの論理キーとWorkspaceSession IDから名前を決定し、k3sから取得したobserved stateとの差分に応じて、存在する
@@ -96,8 +107,9 @@ Job起動要求の失敗やJobのRetry上限到達後にもdesired stateを失�
 定期Jobを用意する。即時Jobと定期Jobが重複しても結果が変わらない契約とし、同じWorkspaceSessionを同時に操作する場合の
 排他方式と具体的な実行間隔は後続Issueで決定する。
 
-明示的な終了と期限切れも、WorkspaceSessionのライフサイクル上の意図をMySQLへ先に記録し、同じJob実行方式でk3s上の
-リソース削除へ収束させる。
+明示的な終了ではWorkspaceSessionをMySQLから削除した後にJobを起動する。期限切れはMySQLに保存した`expires_at`から判定する。
+いずれもMySQL上のdesired stateを先に確定し、同じJob実行方式でk3s上のリソース削除へ収束させる。定期Jobはk3s上の
+WorkspaceSession IDとMySQL上のWorkspaceSessionを照合し、不在または期限切れのWorkspaceに対応するリソースも削除する。
 
 ### Kustomizeとの関係
 
@@ -107,7 +119,8 @@ Kubernetes Clientの型へ直接変換する。生成処理とk3s APIを操作�
 
 同じWorkspaceDefinitionとWorkspaceSession、および同じInfrastructure Policyからは、同じ論理リソース集合を生成する。
 Definitionが所有する値を変更するときは新しいDefinitionを作成する。共通のKubernetes固有Policyを変更した場合は、既存Sessionも
-新しいPolicyへ収束し得ることを許容する。
+新しいPolicyへ収束し得ることを許容する。`image`にTagを使用する場合、同じ論理リソース集合であっても実際に展開されるImageが
+変わり得ることを許容する。
 
 ### レイヤー境界
 
@@ -154,13 +167,13 @@ HTTP処理と複数リソースの適用、待機、再試行が同じProcessへ
 
 ### Definition SnapshotをWorkspaceSessionへ埋め込む
 
-同じDefinitionを複数Sessionへ重複して保存し、Definition単位で参照と保持を管理できない。WorkspaceSessionは不変なDefinition IDを
-参照し、Definitionを独立して保存する。
+同じDefinitionを複数Sessionへ重複して保存し、Definition単位で参照と保持を管理できない。WorkspaceSessionは
+Definition IDを保持し、独立して保存したDefinitionを直接解決する。
 
 ### Definition IDとrevisionを使用する
 
-同じIDのDefinitionを更新し、SessionがIDとrevisionを参照する案。Definition自体を不変とし、変更ごとに新しいIDを発行する方が、
-同じIDで異なる構成が解決される可能性を排除できるため採用しない。
+同じIDのDefinitionを更新し、SessionがIDとrevisionを参照する案。Definition自体を不変とし、変更ごとに新しいIDを
+発行する方が、同じIDで異なる構成が解決される可能性を排除できるため採用しない。
 
 ## 影響
 
@@ -169,8 +182,8 @@ HTTP処理と複数リソースの適用、待機、再試行が同じProcessへ
 - Workspace作成APIは、k3sへの適用完了ではなく、Job起動要求までを扱う非同期処理になる
 - Jobの重複実行、途中失敗、および不明な実行結果を前提に、適用処理をリソース単位で冪等にする必要がある
 - k3s Metadataの欠落や不一致を検出する必要があるが、DefinitionまたはSessionの復元元にはしない
-- OCI Image Digestを参照中はRegistryから削除しない運用が必要になる
-- Preset追加時は、パラメータ解決、Definitionの不変条件、OCI Imageの存在、およびPresetKeyとの対応を検証する必要がある
+- OCI ImageをTagで参照する場合、同じWorkspaceDefinitionから異なるImageが展開され得る
+- Preset追加時は、Definitionの不変条件、OCI Image参照、およびPresetKeyとの対応を検証する必要がある
 - APIとJobは同じコードとMigrationを共有しつつ、異なるEntrypoint、権限、および実行時間制約を持つ
 - Definition、Session、Job実行、Kubernetes変換、観測、状態集約を後続Issueへ分けて実装する必要がある
 

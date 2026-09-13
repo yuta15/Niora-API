@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
-from src.workspace.domain.entities import WorkspacePresetKey, WorkspaceStatus
+from src.workspace.domain.entities import WorkspaceStatus
 
 
 @dataclass(frozen=True)
@@ -12,8 +13,20 @@ class GetWorkspaceInput:
 
 
 @dataclass(frozen=True)
-class GetWorkspaceOutput:
-    """取得したWorkspaceのPresetと実行状態。"""
+class WorkspaceComponentOutput:
+    """WorkspaceDefinitionを構成するComponentの表示内容。"""
 
-    preset_key: WorkspacePresetKey
+    component_key: str
+    image: str
+    terminal_exec_available: bool
+
+
+@dataclass(frozen=True)
+class GetWorkspaceOutput:
+    """取得したWorkspaceSession、Definitionの構成、および実行状態。"""
+
+    session_id: UUID
+    definition_id: UUID
+    expires_at: datetime
     status: WorkspaceStatus
+    components: tuple[WorkspaceComponentOutput, ...]

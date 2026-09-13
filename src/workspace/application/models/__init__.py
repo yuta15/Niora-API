@@ -1,6 +1,10 @@
 from .create_workspace import CreateWorkspaceInput, CreateWorkspaceOutput
 from .delete_workspace import DeleteWorkspaceInput
-from .get_workspace import GetWorkspaceInput, GetWorkspaceOutput
+from .get_workspace import (
+    GetWorkspaceInput,
+    GetWorkspaceOutput,
+    WorkspaceComponentOutput,
+)
 
 __all__ = [
     "CreateWorkspaceInput",
@@ -8,4 +12,5 @@ __all__ = [
     "DeleteWorkspaceInput",
     "GetWorkspaceInput",
     "GetWorkspaceOutput",
+    "WorkspaceComponentOutput",
 ]
