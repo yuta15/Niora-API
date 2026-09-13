@@ -1,8 +1,6 @@
 from datetime import datetime
 from uuid import UUID
 
-from .value_objects import WorkspacePresetKey
-
 
 class WorkspaceSession:
     """起動してから終了するまでの期限付き学習環境。"""
@@ -10,17 +8,17 @@ class WorkspaceSession:
     def __init__(
         self,
         id: UUID,
-        preset_key: WorkspacePresetKey,
+        definition_id: UUID,
         expires_at: datetime,
     ) -> None:
         if not isinstance(id, UUID):
             raise TypeError("workspace session id must be a UUID")
-        if not isinstance(preset_key, WorkspacePresetKey):
-            raise TypeError("workspace preset key must be a WorkspacePresetKey")
+        if not isinstance(definition_id, UUID):
+            raise TypeError("workspace definition id must be a UUID")
         self._validate_aware_datetime(expires_at, "workspace session expiration")
 
         self._id = id
-        self._preset_key = preset_key
+        self._definition_id = definition_id
         self._expires_at = expires_at
 
     @property
@@ -29,9 +27,9 @@ class WorkspaceSession:
         return self._id
 
     @property
-    def preset_key(self) -> WorkspacePresetKey:
-        """実行環境を構築するプリセットのキーを返す。"""
-        return self._preset_key
+    def definition_id(self) -> UUID:
+        """関連するWorkspaceDefinitionの識別子を返す。"""
+        return self._definition_id
 
     @property
     def expires_at(self) -> datetime:

@@ -4,9 +4,18 @@ from src.textbook.application.queries import (
     ChapterWorkspacePresetQuery,
     ResolveChapterWorkspacePresetInput,
 )
-from src.workspace.application import ChapterNotFoundError, WorkspacePresetNotConfiguredError
+from src.workspace.application import (
+    ChapterNotFoundError,
+    WorkspaceDefinitionNotFoundError,
+    WorkspacePresetNotConfiguredError,
+)
 from src.workspace.application.models import CreateWorkspaceInput, CreateWorkspaceOutput
-from src.workspace.application.ports import Clock, WorkspaceRuntime, WorkspaceSessionIdGenerator
+from src.workspace.application.ports import (
+    Clock,
+    WorkspaceDefinitionIdResolver,
+    WorkspaceRuntime,
+    WorkspaceSessionIdGenerator,
+)
 from src.workspace.domain.entities import WorkspacePresetKey, WorkspaceSession
 
 
@@ -16,6 +25,7 @@ class CreateWorkspace:
     def __init__(
         self,
         chapter_workspace_preset_query: ChapterWorkspacePresetQuery,
+        workspace_definition_id_resolver: WorkspaceDefinitionIdResolver,
         workspace_runtime: WorkspaceRuntime,
         clock: Clock,
         workspace_session_id_generator: WorkspaceSessionIdGenerator,
@@ -27,6 +37,7 @@ class CreateWorkspace:
             raise ValueError("workspace lifetime must be positive")
 
         self._chapter_workspace_preset_query = chapter_workspace_preset_query
+        self._workspace_definition_id_resolver = workspace_definition_id_resolver
         self._workspace_runtime = workspace_runtime
         self._clock = clock
         self._workspace_session_id_generator = workspace_session_id_generator
@@ -45,10 +56,15 @@ class CreateWorkspace:
         if preset.workspace_preset_key is None:
             raise WorkspacePresetNotConfiguredError(input.textbook_id, input.chapter_id)
 
+        preset_key = WorkspacePresetKey(preset.workspace_preset_key)
+        definition_id = self._workspace_definition_id_resolver.resolve(preset_key)
+        if definition_id is None:
+            raise WorkspaceDefinitionNotFoundError(preset_key)
+
         expires_at = self._clock.now() + self._lifetime
         session = WorkspaceSession(
             id=self._workspace_session_id_generator.generate(),
-            preset_key=WorkspacePresetKey(preset.workspace_preset_key),
+            definition_id=definition_id,
             expires_at=expires_at,
         )
         self._workspace_runtime.create(session)

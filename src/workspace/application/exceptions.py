@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from src.workspace.domain.entities import WorkspacePresetKey
+
 
 class ChapterNotFoundError(Exception):
     """Workspaceを作成する対象のChapterが存在しない。"""
@@ -17,6 +19,14 @@ class WorkspacePresetNotConfiguredError(Exception):
         self.textbook_id = textbook_id
         self.chapter_id = chapter_id
         super().__init__(f"workspace preset is not configured for chapter {chapter_id} in textbook {textbook_id}")
+
+
+class WorkspaceDefinitionNotFoundError(Exception):
+    """WorkspacePresetKeyに対応するWorkspaceDefinitionが存在しない。"""
+
+    def __init__(self, preset_key: WorkspacePresetKey) -> None:
+        self.preset_key = preset_key
+        super().__init__(f"workspace definition was not found for preset {preset_key.value}")
 
 
 class WorkspaceNotFoundError(Exception):
