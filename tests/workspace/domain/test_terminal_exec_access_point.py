@@ -1,6 +1,6 @@
 import pytest
 
-from src.workspace.domain.entities import TerminalExecAccessPoint
+from src.workspace.domain import TerminalExecAccessPoint
 
 
 def test_terminal_exec_access_point_success_exposes_command() -> None:

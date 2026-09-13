@@ -33,7 +33,10 @@ WorkspaceDefinition
         └── command: NonEmpty[tuple[str, ...]]
 ```
 
-- `definition_id`には永続化時に発行するUUIDを使用する
+- `definition_id`にはUUIDを使用する
+- システム提供PresetのWorkspaceDefinitionは、DomainのVersion管理されたDefinition Catalogに安定したUUIDを含め、同じPresetを再登録しても
+  同じDefinition IDを使用する
+- 将来ユーザー定義環境からWorkspaceDefinitionを作成する場合は、その作成時に新しいUUIDを発行する
 - WorkspaceDefinitionは作成後に変更せず、構成を変更するときは新しいIDのDefinitionを作成する
 - revisionは持たない
 - 同じ構成値を持つ別のDefinitionが存在することを許容し、IDで区別する
@@ -53,17 +56,35 @@ Security設定など、利用者へ提供する実行環境の構成ではない
 
 ### Presetとの境界
 
-WorkspacePresetは、システム提供WorkspaceDefinitionを生成するための入力であり、Domain Modelとしない。Preset固有の値は、
-WorkspaceDefinitionを作成する前にApplicationがInfrastructureのPortを介して解決する。ImageはPresetが指定するOCI Image参照を
-そのままWorkspaceComponentへ保持し、WorkspaceDefinitionの生成時にOCI Registry上のDigestへ固定することは要求しない。
+WorkspacePresetは、WorkspacePresetKeyと完成済みWorkspaceDefinitionを組として保持する不変なDomain Modelとする。
+NioraがどのPresetを、どのKeyとDefinitionで提供するかはWorkspace Domainの知識であるため、システム提供Preset Keyと
+WorkspaceDefinitionをDomain配下の別々のCatalogでGit管理する。Domain ServiceのWorkspacePresetProviderが両Catalogの対応を
+保持し、利用側へ提供中のPreset Key一覧、すべてのWorkspacePreset、または指定KeyのWorkspacePresetを返す。
+Preset入力Model、外部からPresetを取得するPort、およびPresetごとの登録入力は設けない。
+PresetのWorkspaceComponentには実行に使用するOCI Image参照をそのまま保持し、OCI Registry上のDigestへ固定する処理は行わない。
 
-生成したWorkspaceDefinitionと、WorkspacePresetKeyからDefinition IDへの対応をMySQLへ別々に保存する。1つの
-WorkspacePresetKeyは1つのDefinition IDへ不変に対応させる。Presetの構成を変更するときは、新しいWorkspaceDefinitionと
-新しいWorkspacePresetKeyを作成し、必要なChapterだけを新しいPresetKeyへ変更する。v0.0.1ではシステム提供Presetを
-事前登録し、利用者によるPresetの登録や更新は提供しない。
+Preset Key、WorkspaceDefinition、および両者の対応は不変なDomainデータとしてModule Scopeで保持する。
+WorkspacePresetProviderのInstanceはGlobalに保持せず、DomainのFactoryで生成する。Applicationの構成時にFactoryを呼び出して
+初期登録UseCaseへProviderを注入する。
 
-将来ユーザー定義環境を追加する場合も、必要な値を解決した後は同じWorkspaceDefinitionを生成して永続化する。Definitionを
-利用する処理へ、Presetまたはユーザー定義という供給元の違いを渡さない。
+WorkspacePresetProviderは、Preset KeyまたはDefinition IDの重複、対応が存在しないPreset Key、Presetから参照されないDefinition、
+同じDefinitionを参照する複数Preset Keyを拒否する。これにより、Catalogの増減にかかわらず利用側の処理と取得方法を維持する。
+
+初期登録UseCaseは登録対象のPresetを実行時の引数で受け取らず、構成時に注入されたWorkspacePresetProviderからWorkspacePresetをすべて取得して
+永続化Portへ渡す。Database Infrastructureは受け取ったWorkspacePresetからWorkspaceDefinitionと、WorkspacePresetKeyから
+Definition IDへの対応をMySQLへ別々に保存する。UseCaseはCatalog全体を1つのUnit of Workで処理し、同じTransactionで確定する。
+同じCatalogの再登録は既存のDefinition IDと対応を維持する。既存のPresetKey、Definition ID、またはDefinitionの構成がProviderの
+返すWorkspacePresetと一致しない場合は競合として登録全体を失敗させ、既存データを更新しない。
+
+1つのWorkspacePresetKeyは1つのDefinition IDへ不変に対応させる。Presetの構成を変更するときは、新しい
+WorkspaceDefinitionと新しいWorkspacePresetKeyをそれぞれのDomain Catalogへ追加してProviderで対応付け、必要なChapterだけを
+新しいPresetKeyへ変更する。CatalogとProviderの対応からPresetを削除しても、登録済みのWorkspaceDefinitionまたは対応は削除しない。
+v0.0.1では利用者によるPresetの登録や更新を提供しない。Workspace作成時はDomainのProviderを利用せず、MySQLに登録済みの
+WorkspacePresetKeyからDefinition IDへの対応だけを利用する。
+
+将来ユーザー定義環境を追加する場合は、Presetとは別のUseCaseでWorkspaceDefinitionを作成し、UserまたはChapter固有の情報と
+Definition IDとの対応を保存する。供給元ごとの入力形式を共通化せず、WorkspaceDefinitionの保存後は同じDefinition Repository、
+WorkspaceSession、およびRuntimeの契約を利用する。
 
 ### desired stateとobserved state
 
@@ -87,8 +108,8 @@ Workspaceの一時ファイルなど、実行環境内の利用者データを�
 
 ### Jobによる適用
 
-複数のKubernetesリソースを適用する処理は、常駐Controllerではなく、一回実行して終了するJobから行う。APIは
-PresetKeyに対応するWorkspaceDefinitionを解決し、そのDefinition IDを持つWorkspaceSessionをMySQLのTransactionで保存して
+複数のKubernetesリソースを適用する処理は、常駐Controllerではなく、一回実行して終了するJobから行う。APIから呼び出された
+Applicationは、MySQL実装のResolverを通してPresetKeyに対応するDefinition IDを解決し、そのIDを持つWorkspaceSessionをMySQLのTransactionで保存して
 Commitした後、WorkspaceSession IDを指定してApply Jobの起動を要求する。JobへWorkspaceDefinition、Preset、Manifestを受け渡さない。
 
 Apply JobはInbound AdapterとしてApplicationの適用UseCaseを呼び出す。適用UseCaseはWorkspaceSession IDからMySQL上の
@@ -124,9 +145,11 @@ Definitionが所有する値を変更するときは新しいDefinitionを作成
 
 ### レイヤー境界
 
-- Domain: WorkspaceDefinition、WorkspaceComponent、AccessPoint、WorkspaceSessionと不変条件、observed stateの集約規則
-- Application: Preset入力の解決とDefinition生成、DefinitionとSessionの永続化順序、Job起動の調整、desired/observed stateを使った処理調整
-- Database Infrastructure: WorkspaceDefinition、Presetとの対応、WorkspaceSessionの保存と取得
+- Domain: WorkspacePreset、WorkspaceDefinition、分離したPreset Key／Definition Catalog、WorkspacePresetProvider、
+  WorkspaceComponent、AccessPoint、WorkspaceSessionと不変条件、observed stateの集約規則
+- Application: WorkspacePresetProviderが返すシステム提供Presetの初期登録、DefinitionとSessionの永続化順序、Transaction、
+  Job起動の調整、desired/observed stateを使った処理調整
+- Database Infrastructure: WorkspacePresetから分離したWorkspaceDefinitionとPreset対応、およびWorkspaceSessionの保存と取得
 - Job Inbound Adapter: WorkspaceSession IDを受け取り、Applicationの適用UseCaseを一回実行するEntrypoint
 - Kubernetes Infrastructure: リソース生成、差分検出、適用、観測、削除
 
@@ -183,7 +206,8 @@ Definition IDを保持し、独立して保存したDefinitionを直接解決す
 - Jobの重複実行、途中失敗、および不明な実行結果を前提に、適用処理をリソース単位で冪等にする必要がある
 - k3s Metadataの欠落や不一致を検出する必要があるが、DefinitionまたはSessionの復元元にはしない
 - OCI ImageをTagで参照する場合、同じWorkspaceDefinitionから異なるImageが展開され得る
-- Preset追加時は、Definitionの不変条件、OCI Image参照、およびPresetKeyとの対応を検証する必要がある
+- Preset追加時は、DomainのPreset Key CatalogとDefinition Catalogへそれぞれ追加し、WorkspacePresetProviderで対応付ける必要がある
+- WorkspacePresetProviderでDefinitionの不変条件、OCI Image参照、およびPresetKeyとの対応を検証する必要がある
 - APIとJobは同じコードとMigrationを共有しつつ、異なるEntrypoint、権限、および実行時間制約を持つ
 - Definition、Session、Job実行、Kubernetes変換、観測、状態集約を後続Issueへ分けて実装する必要がある
 

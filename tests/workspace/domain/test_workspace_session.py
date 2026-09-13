@@ -3,7 +3,7 @@ from uuid import UUID
 
 import pytest
 
-from src.workspace.domain.entities import WorkspaceSession
+from src.workspace.domain import WorkspaceSession
 
 WORKSPACE_SESSION_ID = UUID("b578c2b7-d5c2-4275-97be-a89665729719")
 OTHER_WORKSPACE_SESSION_ID = UUID("a3239992-e19a-49bc-87c7-31ad9d502c69")

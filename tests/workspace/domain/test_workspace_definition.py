@@ -2,7 +2,7 @@ from uuid import UUID
 
 import pytest
 
-from src.workspace.domain.entities import WorkspaceComponent, WorkspaceDefinition
+from src.workspace.domain import WorkspaceComponent, WorkspaceDefinition
 
 WORKSPACE_DEFINITION_ID = UUID("abf16f80-9172-4f28-927f-e8fe5b3fcd2a")
 OTHER_WORKSPACE_DEFINITION_ID = UUID("44c5a5bd-3358-4b32-bf04-93b0bb969cd9")

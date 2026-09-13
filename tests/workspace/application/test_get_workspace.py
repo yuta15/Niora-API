@@ -11,7 +11,7 @@ from src.workspace.application.models import (
 )
 from src.workspace.application.ports import WorkspaceRuntime, WorkspaceRuntimeSnapshot
 from src.workspace.application.usecases import GetWorkspace
-from src.workspace.domain.entities import (
+from src.workspace.domain import (
     TerminalExecAccessPoint,
     WorkspaceComponent,
     WorkspaceDefinition,
