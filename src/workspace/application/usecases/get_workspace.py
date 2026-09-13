@@ -1,5 +1,9 @@
 from src.workspace.application import WorkspaceNotFoundError
-from src.workspace.application.models import GetWorkspaceInput, GetWorkspaceOutput
+from src.workspace.application.models import (
+    GetWorkspaceInput,
+    GetWorkspaceOutput,
+    WorkspaceComponentOutput,
+)
 from src.workspace.application.ports import WorkspaceRuntime
 
 
@@ -15,7 +19,20 @@ class GetWorkspace:
         if snapshot is None:
             raise WorkspaceNotFoundError(input.workspace_session_id)
 
+        component_outputs: list[WorkspaceComponentOutput] = []
+        for component in snapshot.definition.components:
+            component_outputs.append(
+                WorkspaceComponentOutput(
+                    component_key=component.component_key,
+                    image=component.image,
+                    terminal_exec_available=component.terminal_exec is not None,
+                )
+            )
+
         return GetWorkspaceOutput(
-            preset_key=snapshot.preset_key,
+            session_id=snapshot.session.id,
+            definition_id=snapshot.definition.definition_id,
+            expires_at=snapshot.session.expires_at,
             status=snapshot.status,
+            components=tuple(component_outputs),
         )

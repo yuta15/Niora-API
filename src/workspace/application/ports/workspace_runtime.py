@@ -2,14 +2,15 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.workspace.domain.entities import WorkspacePresetKey, WorkspaceSession, WorkspaceStatus
+from src.workspace.domain.entities import WorkspaceDefinition, WorkspaceSession, WorkspaceStatus
 
 
 @dataclass(frozen=True)
 class WorkspaceRuntimeSnapshot:
-    """Runtimeが観測したWorkspaceのPresetと実行状態。"""
+    """Runtimeが観測したWorkspaceのSession、Definition、および実行状態。"""
 
-    preset_key: WorkspacePresetKey
+    session: WorkspaceSession
+    definition: WorkspaceDefinition
     status: WorkspaceStatus
 
 
