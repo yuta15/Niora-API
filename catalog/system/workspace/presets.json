@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "preset_key": "ws-ubuntu-24_04",
+      "definition": {
+        "definition_id": "1f8d7e6c-1e1b-4a4f-8b49-3a57e08ab8a5",
+        "components": [
+          {
+            "component_key": "main",
+            "image": "ubuntu:24.04",
+            "startup_command": ["sleep", "infinity"],
+            "terminal_exec": {"command": ["/bin/bash"]}
+          }
+        ]
+      }
+    }
+  ]
+}

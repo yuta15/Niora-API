@@ -1,5 +1,9 @@
 # 0014: Workspaceのdesired stateを永続化しJobでk3sへ収束させる
 
+> **後続の注記:** システム提供Workspace presetの保存形式は、[ADR 0015](0015-manage-workspace-system-presets-as-json-catalog.md)で
+> Domain内のPython静的値から`catalog/system/workspace/presets.json`および`scripts/seed_system_catalog.py`へ移行した。
+> WorkspacePresetProviderとDatabase上のdesired stateの契約は維持する。
+
 ## 背景
 
 Workspaceは、1つ以上のPodとNetworkPolicyなど複数のKubernetesリソースで構成される。これらの作成は原子的ではなく、

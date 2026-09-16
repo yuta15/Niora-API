@@ -2,7 +2,7 @@ UV ?= uv
 DOCKER_COMPOSE ?= docker compose
 
 .PHONY: install sync dev lint lint-fix format format-check typecheck architecture/imports test test-all test-cov \
-	pre-commit-install pre-commit check db-up migrate seed-catalog db-down
+	pre-commit-install pre-commit check db-up migrate seed-catalog seed-system-catalog db-down
 
 install: sync
 
@@ -56,6 +56,9 @@ migrate:
 
 seed-catalog:
 	$(UV) run python -m scripts.seed_catalog --textbooks 2 --chapters-per-textbook 5
+
+seed-system-catalog:
+	$(UV) run python -m scripts.seed_system_catalog
 
 db-down:
 	$(DOCKER_COMPOSE) down --volumes

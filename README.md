@@ -47,6 +47,7 @@ import-linter、外部サービスを使用しないテストが検証されま�
 | すべてのテスト | `make test-all` |
 | カバレッジ付きテスト | `make test-cov` |
 | 開発用Textbook/Chapterの投入 | `make seed-catalog` |
+| system Workspace presetの投入 | `make seed-system-catalog` |
 | pre-commitの有効化 | `make pre-commit-install` |
 | pre-commitの全ファイル実行 | `make pre-commit` |
 | 変更を加えない総合チェック | `make check` |
@@ -93,6 +94,20 @@ uv run python -m scripts.seed_catalog --textbooks 2 --chapters-per-textbook 5
 
 生成できるChapterは合計10件までです。`Textbook数 × TextbookごとのChapter数`が10を超える指定は、
 Databaseへ接続する前に拒否されます。
+
+system Workspace presetを投入する場合（`make db-up`と`make migrate`の後、APIまたはJobの起動前）：
+
+```bash
+make seed-system-catalog
+```
+
+Catalog Pathを変更する場合は、次のように指定します。
+
+```bash
+uv run python -m scripts.seed_system_catalog --catalog /path/to/presets.json
+```
+
+同じ内容の再投入はno-opです。既存値と競合した場合は失敗してTransaction全体をrollbackし、Catalogから省略した行は削除しません。
 
 ### 依存関係の追加
 

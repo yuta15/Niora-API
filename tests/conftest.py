@@ -19,7 +19,7 @@ from src.api import create_app
 from src.shared.infra.database import create_engine, create_session_factory
 from src.shared.infra.settings import ApplicationDatabaseSettings, MigrationDatabaseSettings
 
-_PROJECT_ROOT = Path(__file__).parents[4]
+_PROJECT_ROOT = Path(__file__).parents[1]
 
 
 class _AdminDatabaseSettings(BaseSettings):

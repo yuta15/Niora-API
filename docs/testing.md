@@ -120,18 +120,17 @@ Fixture名は生成方法ではなく、テストから見た役割を表す名�
 
 ```text
 tests/
+├── conftest.py                     # Module横断のMySQL fixture
 ├── textbook/
 │   ├── domain/
 │   ├── application/
 │   └── integration/
 │       └── mysql/
-│           └── conftest.py
 ├── workspace/
 │   ├── domain/
 │   ├── application/
 │   └── integration/
 │       ├── mysql/
-│       │   └── conftest.py
 │       └── k3s/
 │           └── conftest.py
 ├── auth/

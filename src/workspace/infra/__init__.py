@@ -1,0 +1,1 @@
+"""WorkspaceのInfrastructure Adapter。"""
