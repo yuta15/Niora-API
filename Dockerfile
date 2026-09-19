@@ -25,6 +25,8 @@ RUN groupadd --system app && useradd --system --gid app app
 
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 COPY --chown=app:app src /app/src
+COPY --chown=app:app scripts /app/scripts
+COPY --chown=app:app catalog /app/catalog
 
 USER app
 

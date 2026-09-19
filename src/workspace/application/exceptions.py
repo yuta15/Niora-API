@@ -29,17 +29,6 @@ class WorkspaceDefinitionNotFoundError(Exception):
         super().__init__(f"workspace definition was not found for preset {preset_key.value}")
 
 
-class WorkspacePresetConflictError(Exception):
-    """WorkspacePresetの登録内容が既存のCatalogと競合している。"""
-
-    def __init__(self, preset_key: WorkspacePresetKey, definition_id: UUID) -> None:
-        self.preset_key = preset_key
-        self.definition_id = definition_id
-        super().__init__(
-            f"workspace preset {preset_key.value} with definition {definition_id} conflicts with existing catalog"
-        )
-
-
 class WorkspaceNotFoundError(Exception):
     """指定されたWorkspaceSessionに対応する実行環境が存在しない。"""
 

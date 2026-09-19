@@ -29,6 +29,7 @@ MySQL AdapterとMigrationの実装時に、次の操作をMake targetとして�
 | 開発・Integrationテスト用MySQLの起動 | `make db-up` | 固定したMySQL 9.7 GA ImageをDocker Composeで起動し、Healthcheckを待つ |
 | Migrationの適用 | `make migrate` | `uv run alembic upgrade head` |
 | 開発用Catalogの投入 | `make seed-catalog` | `uv run python -m scripts.seed_catalog --textbooks 2 --chapters-per-textbook 5` |
+| system Workspace presetの投入 | `make seed-system-catalog` | `uv run python -m scripts.seed_system_catalog` |
 | MySQLの停止とVolume削除 | `make db-down` | Docker ComposeのContainerとVolumeを削除する |
 
 Integrationテストの標準実行順序は次のとおりです。
@@ -54,6 +55,20 @@ uv run python -m scripts.seed_catalog --textbooks <Textbook数> --chapters-per-t
 同じ引数で繰り返し実行しても重複せず、生成対象外の既存行は変更されません。Chapterの位置を別の既存Chapterが
 占有している場合は、全体をrollbackして失敗します。生成できるChapterは合計10件までで、
 `Textbook数 × TextbookごとのChapter数`が10を超える場合はDatabaseへ接続する前に失敗します。
+
+### system Workspace preset Catalog
+
+`make seed-system-catalog`は、`catalog/system/workspace/presets.json`を読み込み、loaderによる構造検証と
+WorkspaceのTable Modelへの直接seedを一つのTransactionで実行します。実行は`make migrate`の後、APIまたはJobの起動前に
+単独で行います。別のCatalogを検証・投入する場合は、次のように`--catalog`でPathを指定します。
+
+```bash
+uv run python -m scripts.seed_system_catalog --catalog <Catalog Path>
+```
+
+同じ定義を再投入した場合はno-opとなり、mappingだけが欠落している場合はmappingを追加します。Definition、Component、Terminal、
+Mappingの競合や不完全な状態を検出した場合は、Catalog全体をrollbackします。Catalogから省略した行は削除しません。
+この処理は`seed_catalog.py`の開発用Textbook投入とは独立しています。
 
 ComposeのMySQLは、Migration用UserにSchema変更権限を与え、Application用Userには対象Databaseの
 `SELECT`、`INSERT`、`UPDATE`、`DELETE`だけを与えます。Application用Userは

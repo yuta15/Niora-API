@@ -6,8 +6,23 @@ from sqlalchemy import create_engine, pool
 from src.shared.infra.database import Base
 from src.shared.infra.settings import MigrationDatabaseSettings
 from src.textbook.infra.database import ChapterTable, TextbookTable
+from src.workspace.infra.database import (
+    PresetWorkspaceDefinitionMappingTable,
+    TerminalAccessPointTable,
+    WorkspaceComponentTable,
+    WorkspaceDefinitionTable,
+    WorkspaceSessionTable,
+)
 
-_TABLE_MODELS = (ChapterTable, TextbookTable)
+_TABLE_MODELS = (
+    ChapterTable,
+    TextbookTable,
+    WorkspaceSessionTable,
+    WorkspaceDefinitionTable,
+    WorkspaceComponentTable,
+    TerminalAccessPointTable,
+    PresetWorkspaceDefinitionMappingTable,
+)
 
 settings = MigrationDatabaseSettings()  # type: ignore[call-arg]  # pyright: ignore[reportCallIssue]
 # this is the Alembic Config object, which provides

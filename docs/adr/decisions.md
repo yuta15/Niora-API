@@ -16,3 +16,4 @@
 | 0012 | SQLAlchemyを直接使用しDatabase Infrastructureの所有境界を分ける | [0012-use-sqlalchemy-and-separate-database-infrastructure.md](0012-use-sqlalchemy-and-separate-database-infrastructure.md) |
 | 0013 | WorkspacePresetをKustomize ManifestとしてGit管理する | [0013-manage-workspace-presets-as-kustomize-manifests.md](0013-manage-workspace-presets-as-kustomize-manifests.md) |
 | 0014 | Workspaceのdesired stateを永続化しJobでk3sへ収束させる | [0014-persist-workspace-desired-state-and-apply-with-jobs.md](0014-persist-workspace-desired-state-and-apply-with-jobs.md) |
+| 0015 | Workspace system presetをJSON CatalogとしてGit管理する | [0015-manage-workspace-system-presets-as-json-catalog.md](0015-manage-workspace-system-presets-as-json-catalog.md) |

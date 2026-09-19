@@ -7,7 +7,7 @@ from .entities import (
     WorkspaceSession,
     WorkspaceStatus,
 )
-from .services import WorkspacePresetProvider, create_system_workspace_preset_provider
+from .services import WorkspacePresetProvider
 
 __all__ = [
     "TerminalExecAccessPoint",
@@ -18,5 +18,4 @@ __all__ = [
     "WorkspacePresetProvider",
     "WorkspaceSession",
     "WorkspaceStatus",
-    "create_system_workspace_preset_provider",
 ]
