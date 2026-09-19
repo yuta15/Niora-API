@@ -66,7 +66,7 @@ def test_list_success_filters_by_textbook_and_orders_by_position(mysql_session: 
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("workspace_preset_key", [None, "python-basic"])
+@pytest.mark.parametrize("workspace_preset_key", [None, "python-basic", "a" * 512])
 def test_get_success_returns_chapter_with_workspace_preset_key(
     mysql_session: Session,
     workspace_preset_key: str | None,

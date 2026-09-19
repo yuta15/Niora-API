@@ -16,7 +16,7 @@ class WorkspaceComponentTable(Base):
     definition_id: Mapped[UUID] = mapped_column(
         ForeignKey("workspace_definition.id", ondelete="CASCADE"), primary_key=True
     )
-    component_key: Mapped[str] = mapped_column(String(length=128), primary_key=True)
-    image: Mapped[str] = mapped_column(String(length=128))
+    component_key: Mapped[str] = mapped_column(String(length=128, collation="utf8mb4_0900_bin"), primary_key=True)
+    image: Mapped[str] = mapped_column(String(length=512))
     position: Mapped[int] = mapped_column()
     startup_command: Mapped[list[str]] = mapped_column(JSON, nullable=True)

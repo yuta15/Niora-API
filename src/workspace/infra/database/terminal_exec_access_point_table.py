@@ -20,5 +20,5 @@ class TerminalAccessPointTable(Base):
     )
 
     definition_id: Mapped[UUID] = mapped_column(primary_key=True)
-    component_key: Mapped[str] = mapped_column(String(length=128), primary_key=True)
+    component_key: Mapped[str] = mapped_column(String(length=128, collation="utf8mb4_0900_bin"), primary_key=True)
     command: Mapped[list[str]] = mapped_column(JSON())

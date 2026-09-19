@@ -29,6 +29,7 @@ from src.workspace.infra.database import (
 )
 
 _SCHEMA_VERSION = 1
+_MAX_COMPONENT_IMAGE_LENGTH = 512
 _DEFAULT_CATALOG_PATH = Path(__file__).resolve().parents[1] / "catalog/system/workspace/presets.json"
 _LOGGER = logging.getLogger(__name__)
 
@@ -177,6 +178,12 @@ class WorkspacePresetCatalogLoader:
         )
         component_key = self._string(data, "component_key", json_path=json_path, index=index)
         image = self._string(data, "image", json_path=json_path, index=index)
+        if len(image) > _MAX_COMPONENT_IMAGE_LENGTH:
+            self._fail(
+                f"image must be at most {_MAX_COMPONENT_IMAGE_LENGTH} characters",
+                json_path=f"{json_path}.image",
+                index=index,
+            )
         startup_command = self._argv(data, "startup_command", json_path=json_path, index=index)
         terminal_exec = self._load_terminal_exec(data, json_path=json_path, index=index)
         try:

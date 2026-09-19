@@ -10,6 +10,8 @@ TEXTBOOK_ID = UUID("d9e259cb-c537-451b-b38b-90443f553185")
 OTHER_TEXTBOOK_ID = UUID("38e3ae7b-357f-44ea-b0d8-f8499fc3f132")
 WORKSPACE_PRESET_KEY = "ws-ubuntu-24_04"
 OTHER_WORKSPACE_PRESET_KEY = "ws-ubuntu-26_04"
+MAX_LENGTH_WORKSPACE_PRESET_KEY = "a" * 512
+TOO_LONG_WORKSPACE_PRESET_KEY = "a" * 513
 
 
 def _chapter(workspace_preset_key: str | None = WORKSPACE_PRESET_KEY) -> Chapter:
@@ -118,12 +120,44 @@ def test_init_failure_rejects_empty_workspace_preset_key() -> None:
         _chapter(workspace_preset_key="")
 
 
+def test_init_success_accepts_512_character_workspace_preset_key() -> None:
+    """512文字のWorkspacePresetKeyを章へ紐付けられることを確認する。"""
+    chapter = _chapter(workspace_preset_key=MAX_LENGTH_WORKSPACE_PRESET_KEY)
+
+    assert chapter.workspace_preset_key == MAX_LENGTH_WORKSPACE_PRESET_KEY
+
+
+def test_init_failure_rejects_513_character_workspace_preset_key() -> None:
+    """513文字のWorkspacePresetKeyを章へ紐付けられないことを確認する。"""
+    with pytest.raises(ValueError):
+        _chapter(workspace_preset_key=TOO_LONG_WORKSPACE_PRESET_KEY)
+
+
 def test_change_workspace_preset_key_failure_rejects_empty_key() -> None:
     """WorkspacePresetKeyを空文字列へ変更できないことを確認する。"""
     chapter = _chapter()
 
     with pytest.raises(ValueError):
         chapter.change_workspace_preset_key("")
+
+    assert chapter.workspace_preset_key == WORKSPACE_PRESET_KEY
+
+
+def test_change_workspace_preset_key_success_accepts_512_characters() -> None:
+    """WorkspacePresetKeyを512文字へ変更できることを確認する。"""
+    chapter = _chapter()
+
+    chapter.change_workspace_preset_key(MAX_LENGTH_WORKSPACE_PRESET_KEY)
+
+    assert chapter.workspace_preset_key == MAX_LENGTH_WORKSPACE_PRESET_KEY
+
+
+def test_change_workspace_preset_key_failure_rejects_513_characters_without_changing_value() -> None:
+    """513文字への変更を拒否し、章の既存WorkspacePresetKeyを維持することを確認する。"""
+    chapter = _chapter()
+
+    with pytest.raises(ValueError):
+        chapter.change_workspace_preset_key(TOO_LONG_WORKSPACE_PRESET_KEY)
 
     assert chapter.workspace_preset_key == WORKSPACE_PRESET_KEY
 

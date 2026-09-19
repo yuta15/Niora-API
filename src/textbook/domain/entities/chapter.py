@@ -2,6 +2,21 @@ from uuid import UUID
 
 from .value_objects import ChapterPosition, ContentString, TitleString
 
+_MIN_WORKSPACE_PRESET_KEY_LENGTH = 1
+_MAX_WORKSPACE_PRESET_KEY_LENGTH = 512
+
+
+def _validate_workspace_preset_key(value: object) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise TypeError("workspace preset key must be a string or None")
+    if len(value) < _MIN_WORKSPACE_PRESET_KEY_LENGTH:
+        raise ValueError("workspace preset key must not be empty")
+    if len(value) > _MAX_WORKSPACE_PRESET_KEY_LENGTH:
+        raise ValueError(f"workspace preset key must contain at most {_MAX_WORKSPACE_PRESET_KEY_LENGTH} characters")
+    return value
+
 
 class Chapter:
     """教科書を構成し、必要に応じて学習環境と対応する章。"""
@@ -25,17 +40,12 @@ class Chapter:
             raise TypeError("chapter title must be a TitleString")
         if not isinstance(content, ContentString):
             raise TypeError("chapter content must be a ContentString")
-        if workspace_preset_key is not None and not isinstance(workspace_preset_key, str):
-            raise TypeError("workspace preset key must be a string or None")
-        if workspace_preset_key == "":
-            raise ValueError("workspace preset key must not be empty")
-
         self._id = id
         self._textbook_id = textbook_id
         self._position = position
         self._title = title
         self._content = content
-        self._workspace_preset_key = workspace_preset_key
+        self._workspace_preset_key = _validate_workspace_preset_key(workspace_preset_key)
 
     @property
     def id(self) -> UUID:
@@ -90,9 +100,4 @@ class Chapter:
 
     def change_workspace_preset_key(self, workspace_preset_key: str | None) -> None:
         """章に紐づくWorkspacePresetKeyを変更する。"""
-        if workspace_preset_key is not None and not isinstance(workspace_preset_key, str):
-            raise TypeError("workspace preset key must be a string or None")
-        if workspace_preset_key == "":
-            raise ValueError("workspace preset key must not be empty")
-
-        self._workspace_preset_key = workspace_preset_key
+        self._workspace_preset_key = _validate_workspace_preset_key(workspace_preset_key)

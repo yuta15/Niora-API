@@ -45,6 +45,60 @@ def test_load_workspace_preset_catalog_success_allows_optional_component_fields(
     assert preset.definition.components[0].terminal_exec is None
 
 
+def test_load_workspace_preset_catalog_success_accepts_image_with_512_characters(tmp_path: Path) -> None:
+    """512文字のComponent imageを検証済みCatalogへ変換できることを確認する。"""
+    document = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+    image = "x" * 512
+    document["presets"][0]["definition"]["components"][0]["image"] = image
+    valid_path = tmp_path / "valid.json"
+    valid_path.write_text(json.dumps(document), encoding="utf-8")
+
+    component = WorkspacePresetCatalogLoader(valid_path).load().presets[0].definition.components[0]
+
+    assert component.image == image
+
+
+def test_load_workspace_preset_catalog_failure_rejects_image_with_513_characters(tmp_path: Path) -> None:
+    """513文字のComponent imageをfile・path・index付きのValueErrorとして拒否することを確認する。"""
+    document = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+    document["presets"][0]["definition"]["components"][0]["image"] = "x" * 513
+    invalid_path = tmp_path / "invalid.json"
+    invalid_path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match=rf"file={re.escape(str(invalid_path))} path=\$\.presets\[0\]\.definition\.components\[0\]\.image index=0",
+    ):
+        WorkspacePresetCatalogLoader(invalid_path).load()
+
+
+def test_load_workspace_preset_catalog_success_accepts_preset_key_with_512_characters(tmp_path: Path) -> None:
+    """512文字のpreset_keyを検証済みCatalogへ変換できることを確認する。"""
+    document = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+    preset_key = "a" * 512
+    document["presets"][0]["preset_key"] = preset_key
+    valid_path = tmp_path / "valid-preset-key.json"
+    valid_path.write_text(json.dumps(document), encoding="utf-8")
+
+    preset = WorkspacePresetCatalogLoader(valid_path).load().presets[0]
+
+    assert preset.preset_key.value == preset_key
+
+
+def test_load_workspace_preset_catalog_failure_rejects_preset_key_with_513_characters(tmp_path: Path) -> None:
+    """513文字のpreset_keyをfile・path・index付きのValueErrorとして拒否することを確認する。"""
+    document = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+    document["presets"][0]["preset_key"] = "a" * 513
+    invalid_path = tmp_path / "invalid-preset-key.json"
+    invalid_path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match=rf"file={re.escape(str(invalid_path))} path=\$\.presets\[0\]\.preset_key index=0",
+    ):
+        WorkspacePresetCatalogLoader(invalid_path).load()
+
+
 @pytest.mark.parametrize(
     ("path", "expected_path"),
     [

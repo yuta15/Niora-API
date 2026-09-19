@@ -5,9 +5,9 @@ import pytest
 from src.workspace.domain import WorkspacePresetKey
 
 
-@pytest.mark.parametrize("value", ["a", "a" * 128])
+@pytest.mark.parametrize("value", ["a", "a" * 512])
 def test_workspace_preset_key_success_accepts_boundary_length(value: str) -> None:
-    """1文字以上128文字以下のプリセットキーを生成できることを確認する。"""
+    """1文字または512文字のプリセットキーを生成できることを確認する。"""
     assert WorkspacePresetKey(value).value == value
 
 
@@ -17,9 +17,9 @@ def test_workspace_preset_key_success_accepts_supported_characters(value: str) -
     assert WorkspacePresetKey(value).value == value
 
 
-@pytest.mark.parametrize("value", ["", "a" * 129])
+@pytest.mark.parametrize("value", ["", "a" * 513])
 def test_workspace_preset_key_failure_rejects_invalid_length(value: str) -> None:
-    """空文字列または128文字を超えるプリセットキーを生成できないことを確認する。"""
+    """空文字列または512文字を超えるプリセットキーを生成できないことを確認する。"""
     with pytest.raises(ValueError):
         WorkspacePresetKey(value)
 

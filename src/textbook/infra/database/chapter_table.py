@@ -21,4 +21,4 @@ class ChapterTable(Base):
     title: Mapped[str] = mapped_column(String(length=128))
     position: Mapped[int] = mapped_column()
     content: Mapped[str] = mapped_column(Text)
-    workspace_preset_key: Mapped[str | None] = mapped_column(String(length=128), nullable=True)
+    workspace_preset_key: Mapped[str | None] = mapped_column(String(length=512), nullable=True)
