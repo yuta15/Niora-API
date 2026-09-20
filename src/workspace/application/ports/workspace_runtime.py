@@ -7,10 +7,8 @@ from src.workspace.domain import WorkspaceDefinition, WorkspaceSession, Workspac
 
 @dataclass(frozen=True)
 class WorkspaceRuntimeSnapshot:
-    """Runtimeが観測したWorkspaceのSession、Definition、および実行状態。"""
+    """Runtimeが観測したWorkspaceの実行状態。"""
 
-    session: WorkspaceSession
-    definition: WorkspaceDefinition
     status: WorkspaceStatus
 
 

@@ -8,3 +8,4 @@ class WorkspaceStatus(StrEnum):
     READY = "ready"
     FAILED = "failed"
     DELETING = "deleting"
+    MISSING = "missing"

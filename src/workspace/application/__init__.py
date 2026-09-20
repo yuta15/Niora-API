@@ -3,6 +3,7 @@ from .exceptions import (
     WorkspaceDefinitionNotFoundError,
     WorkspaceNotFoundError,
     WorkspacePresetNotConfiguredError,
+    WorkspaceSessionDefinitionNotFoundError,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "WorkspaceDefinitionNotFoundError",
     "WorkspaceNotFoundError",
     "WorkspacePresetNotConfiguredError",
+    "WorkspaceSessionDefinitionNotFoundError",
 ]
