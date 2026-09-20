@@ -35,3 +35,11 @@ class WorkspaceNotFoundError(Exception):
     def __init__(self, workspace_session_id: UUID) -> None:
         self.workspace_session_id = workspace_session_id
         super().__init__(f"workspace {workspace_session_id} was not found")
+
+
+class WorkspaceSessionDefinitionNotFoundError(Exception):
+    """WorkspaceSessionが参照するWorkspaceDefinitionが存在しない。"""
+
+    def __init__(self, definition_id: UUID) -> None:
+        self.definition_id = definition_id
+        super().__init__(f"workspace definition {definition_id} referenced by a session was not found")

@@ -2,13 +2,13 @@
 
 ## 背景
 
-Workspaceは複数のk3sリソースで構成され、作成や削除の途中で失敗することがある。v0.0.1ではApply Job、未収束Workspaceの定期再適用、full reconcile、outbox/dispatcher、driftや欠損の修復を行わず、APIからRuntimeへ同期的に一度操作を依頼する。Database transactionとk3s I/Oは分離し、途中失敗したリソースや保存結果が不明なSessionは有効期限後の共通Cleanupで回収できるようにする。
+Workspaceは複数のk3sリソースで構成され、作成や削除の途中で失敗することがある。v0.0.1ではApply Job、未収束Workspaceの定期再適用、full reconcile、outbox/dispatcher、driftや欠損の修復を行わず、APIからRuntimeへ同期的に一度操作を依頼する。Database transactionとk3s I/Oは分離し、操作失敗後に残るSessionまたはリソースは有効期限後の共通Cleanupで回収できるようにする。
 
 ## 決定
 
 ### 状態と責務
 
-- WorkspaceDefinitionは不変な作成構成を表し、WorkspaceSessionはRuntimeの作成成功後に保存するApplication metadataを表す。
+- WorkspaceDefinitionは不変な作成構成を表し、WorkspaceSessionはApplicationがRuntime操作前に保存する利用単位のmetadataを表す。Sessionの存在はRuntimeの作成成功を保証しない。
 - k3s上のリソースを実行状態のobserved stateとする。Databaseはk3sを継続収束させるdesired stateではない。
 - 全k3s resourceに`managed-by` label、WorkspaceSession ID label、およびUTCの`expires_at` annotationを作成時に付与する。必要なmetadataの欠落または不正を検出した場合は警告する。Database Sessionが存在しない孤立resourceは、必要なmetadataが正しい場合だけ自動削除する。
 - Runtimeの作成操作はWorkspaceSessionとWorkspaceDefinitionを受け取る。観測操作はk3sのobserved stateだけを返し、Database由来のSessionまたはDefinitionを返さない。
@@ -16,14 +16,14 @@ Workspaceは複数のk3sリソースで構成され、作成や削除の途中�
 ### Create
 
 1. 短い読取Unit of WorkでPresetからDefinition IDを解決し、対応するWorkspaceDefinitionを取得してWorkspaceSessionを生成する。
-2. Database transactionの外でRuntimeへ一度だけ同期作成を依頼する。
-3. Runtime作成が成功した後、短い書込Unit of WorkでWorkspaceSessionを保存する。
+2. 短い書込Unit of WorkでWorkspaceSessionを保存する。
+3. Database transactionの外でRuntimeへ一度だけ同期作成を依頼する。
 
-作成途中にRuntimeが失敗した場合、Runtimeは同一WorkspaceSession IDのlabelを使って作成済みリソースをbest-effortで削除し、元のエラーを返す。WorkspaceSession保存がCommit開始前に明確に失敗した場合だけ、ApplicationがRuntime削除をbest-effortで行う。Commit開始後の例外は成功または失敗を判定できない結果不明として扱い、Runtimeを即時削除しない。結果不明または補償削除失敗はAPI errorとし、残ったリソースまたはSessionを期限Cleanupへ委ねる。k3s I/O中にDatabase transactionを保持しない。
+Session保存に失敗した場合はRuntimeを呼ばず、元のエラーを返す。Runtime作成に失敗した場合は元のエラーを返し、保存済みSessionや作成途中のresourceを即時に補償・再試行・収束させない。これらは有効期限後のCleanup対象とする。k3s I/O中にDatabase transactionを保持しない。
 
 ### DeleteとGet
 
-- Deleteはまず短い読取Unit of WorkでDatabase上のWorkspaceSessionを確認する。存在しない場合は完了とする。存在する場合はtransaction外でSession ID labelを使って同期削除し、対象がk3sに存在しない場合も成功とする。Runtime削除成功後に短いUnit of WorkでDatabase Sessionを削除する。
+- Deleteはまず短い読取Unit of WorkでDatabase上のWorkspaceSessionを確認する。存在しない場合は完了とする。期限切れの場合はRuntimeとDatabase Sessionを操作せず、期限Cleanupへ委譲する。期限内の場合はtransaction外でSession ID labelを使って同期削除し、対象がk3sに存在しない場合も成功とする。Runtime削除成功後に短いUnit of WorkでDatabase Sessionを削除する。
 - Runtime削除が失敗した場合はDatabase Sessionを維持する。Runtime削除後のDatabase削除が失敗した場合はAPI errorとし、再Deleteで回復する。作成処理は行わない。
 - GetはDatabaseのWorkspaceSessionとWorkspaceDefinition、およびk3sのobserved stateを組み合わせて返す。Database Sessionがなければnot foundとし、Sessionがあり対応リソースが欠損している場合は欠損状態として表現する。Getで修復しない。
 
@@ -60,7 +60,7 @@ ADR 0014のdesired state、Job適用、定期reconcile、削除順序、およ�
 ## 影響
 
 - APIの作成・削除はk3sの同期応答を待つため、処理時間が長くなる可能性がある。
-- Databaseとk3sをまたぐ原子的な更新はない。Runtime作成途中のresourceや保存結果が不明なSessionが期限まで残る可能性があり、APIが結果不明を返す場合がある。
+- Databaseとk3sをまたぐ原子的な更新はない。Runtime作成失敗後もSessionだけ、または作成途中のresourceだけが期限まで残る可能性があり、APIは元のエラーを返す。
 - 明示Deleteの失敗はSessionを維持し、期限Cleanupの対象となるまでは自動再試行しない。
 - Database Sessionがない孤立resourceは、期限metadataが正しい場合だけ回収する。Database Sessionが期限切れの場合はDatabase期限を優先し、正しい管理Labelを持つresourceを回収する。
 - Database transactionを短く保ち、外部I/O中の接続占有を避けられる。
