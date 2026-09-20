@@ -3,6 +3,10 @@
 > **後続の決定:** WorkspaceDefinitionとWorkspaceSessionをdesired stateとしてMySQLへ永続化し、Jobからk3sへ収束させる責務を
 > [ADR 0014](0014-persist-workspace-desired-state-and-apply-with-jobs.md)で決定した。k3sをobserved stateの正とする決定、
 > Workspaceを1つ以上のPodで構成する決定、およびPod execによる接続方式は継続する。
+>
+> **さらに後続の決定:** ADR 0014のdesired state、Job適用、定期reconcileの決定、および本ADRのMetadataと期限Cleanupの詳細は
+> [ADR 0016](0016-apply-workspace-synchronously-and-clean-up-expired-resources.md)で置き換えた。Database Sessionとk3s Metadataの期限を
+> 安全側に照合して回収する。共通CronJob、同時実行を許可しないこと、k3sをobserved stateの正とすること、Pod構成、およびPod execは継続する。
 
 ## 背景
 
