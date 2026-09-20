@@ -32,6 +32,7 @@ Niora APIは、教科書に対応したWorkspaceをk3s上に起動し、ブラ�
 * 最終確認で最低限`make check`を成功させる
 * GitHubの操作はMCPを利用すること
 * レビューは必ず日本語で行うこと
+* コードの変更の際、直接GitHubに対してコミットをせず、ローカルにて変更、コミット、pushすること
 
 
 ### Python import
