@@ -3,6 +3,9 @@
 > **後続の決定:** WorkspaceDefinitionとWorkspaceSessionをdesired stateとしてMySQLへ永続化する方針を
 > [ADR 0014](0014-persist-workspace-desired-state-and-apply-with-jobs.md)で決定し、WorkspaceSessionをk3s Metadataだけに保存して
 > 復元する決定を置き換えた。k3s MetadataはMySQL上のdesired stateとの識別と照合にだけ使用する。
+>
+> **さらに後続の決定:** ADR 0014のdesired stateとしての扱いは[ADR 0016](0016-apply-workspace-synchronously-and-clean-up-expired-resources.md)で置き換えた。
+> WorkspaceSessionとDefinitionはDatabaseへ永続化し、k3s Metadataはresourceの識別と期限Cleanupに使用する。Metadataから復元しない。
 
 ## 背景
 

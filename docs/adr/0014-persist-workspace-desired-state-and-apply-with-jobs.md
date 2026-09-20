@@ -2,7 +2,10 @@
 
 > **後続の注記:** システム提供Workspace presetの保存形式は、[ADR 0015](0015-manage-workspace-system-presets-as-json-catalog.md)で
 > Domain内のPython静的値から`catalog/system/workspace/presets.json`および`scripts/seed_system_catalog.py`へ移行した。
-> WorkspacePresetProviderとDatabase上のdesired stateの契約は維持する。
+> WorkspacePresetとDefinitionの管理、およびDatabaseへの永続化に関する判断は維持する。
+>
+> **後続の注記:** Workspaceの作成・削除方式、desired state、Apply Job、定期reconcile、および削除順序は、[ADR 0016](0016-apply-workspace-synchronously-and-clean-up-expired-resources.md)で置き換えた。
+> WorkspaceDefinitionとWorkspaceSessionの永続化、Presetとの境界、不変Definition、Kustomizeを使わないこと、およびDefinitionからの直接resource生成は維持する。
 
 ## 背景
 

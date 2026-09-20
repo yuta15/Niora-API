@@ -2,6 +2,10 @@
 
 > SQLModelを採用する決定は[ADR 0012](0012-use-sqlalchemy-and-separate-database-infrastructure.md)で置き換えた。
 > PyMySQL、Transaction境界、Alembic、Secret管理、Integrationテストに関する決定は引き続き有効とする。
+>
+> **後続の決定:** [ADR 0016](0016-apply-workspace-synchronously-and-clean-up-expired-resources.md)では、外部I/O中に
+> Database transactionを保持しないため、WorkspaceのCreateとDeleteが複数の短いTransactionを使用できる例外を定めた。
+> 各TransactionをUnit of Workで管理し、RepositoryがTransactionを判断しない原則は維持する。
 
 ## 背景
 
