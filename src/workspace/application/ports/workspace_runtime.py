@@ -18,7 +18,7 @@ class WorkspaceRuntime(ABC):
     """WorkspaceSessionに対応する実行環境を操作する。"""
 
     @abstractmethod
-    def create(self, session: WorkspaceSession) -> None:
+    def create(self, session: WorkspaceSession, definition: WorkspaceDefinition) -> None:
         """実行環境の作成要求を完了し、Ready状態になるまでは待機しない。"""
 
     @abstractmethod

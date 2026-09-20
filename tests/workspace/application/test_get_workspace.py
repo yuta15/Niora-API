@@ -3,13 +3,19 @@ from uuid import UUID
 
 import pytest
 
+from src.shared.application.ports import UnitOfWork
 from src.workspace.application import WorkspaceNotFoundError
 from src.workspace.application.models import (
     GetWorkspaceInput,
     GetWorkspaceOutput,
     WorkspaceComponentOutput,
 )
-from src.workspace.application.ports import WorkspaceRuntime, WorkspaceRuntimeSnapshot
+from src.workspace.application.ports import (
+    Clock,
+    WorkspaceRuntime,
+    WorkspaceRuntimeSnapshot,
+    WorkspaceSessionRepository,
+)
 from src.workspace.application.usecases import GetWorkspace
 from src.workspace.domain import (
     TerminalExecAccessPoint,
@@ -22,6 +28,7 @@ from src.workspace.domain import (
 WORKSPACE_SESSION_ID = UUID("b578c2b7-d5c2-4275-97be-a89665729719")
 WORKSPACE_DEFINITION_ID = UUID("0d4c3f6d-01fc-49da-8d72-b8a3a7f99425")
 WORKSPACE_EXPIRES_AT = datetime(2026, 9, 14, tzinfo=UTC)
+NOW = datetime(2026, 9, 13, tzinfo=UTC)
 
 
 class FakeWorkspaceRuntime(WorkspaceRuntime):
@@ -29,7 +36,7 @@ class FakeWorkspaceRuntime(WorkspaceRuntime):
         self._snapshot = snapshot
         self.received_workspace_session_ids: list[UUID] = []
 
-    def create(self, session: WorkspaceSession) -> None:
+    def create(self, session: WorkspaceSession, definition: WorkspaceDefinition) -> None:
         raise AssertionError(f"unexpected workspace creation: {session.id}")
 
     def delete(self, workspace_session_id: UUID) -> None:
@@ -38,6 +45,49 @@ class FakeWorkspaceRuntime(WorkspaceRuntime):
     def find(self, workspace_session_id: UUID) -> WorkspaceRuntimeSnapshot | None:
         self.received_workspace_session_ids.append(workspace_session_id)
         return self._snapshot
+
+
+class FakeWorkspaceSessionRepository(WorkspaceSessionRepository):
+    def __init__(self, session: WorkspaceSession | None) -> None:
+        self._session = session
+        self.received_workspace_session_ids: list[UUID] = []
+
+    def get(self, id: UUID) -> WorkspaceSession | None:
+        self.received_workspace_session_ids.append(id)
+        return self._session
+
+    def add(self, session: WorkspaceSession) -> None:
+        raise AssertionError(f"unexpected workspace session addition: {session.id}")
+
+    def delete(self, id: UUID) -> None:
+        raise AssertionError(f"unexpected workspace session deletion: {id}")
+
+
+class FixedClock(Clock):
+    def __init__(self, now: datetime) -> None:
+        self._now = now
+
+    def now(self) -> datetime:
+        return self._now
+
+
+class SpyUnitOfWork(UnitOfWork):
+    def _commit(self) -> None:
+        pass
+
+    def _rollback(self) -> None:
+        pass
+
+
+def _usecase(
+    session: WorkspaceSession | None,
+    snapshot: WorkspaceRuntimeSnapshot | None,
+    now: datetime = NOW,
+) -> tuple[GetWorkspace, FakeWorkspaceSessionRepository, FakeWorkspaceRuntime]:
+    repository = FakeWorkspaceSessionRepository(session)
+    runtime = FakeWorkspaceRuntime(snapshot)
+    usecase = GetWorkspace(repository, runtime, SpyUnitOfWork(), FixedClock(now))
+    return usecase, repository, runtime
 
 
 def test_execute_success_returns_workspace_runtime_snapshot() -> None:
@@ -62,17 +112,14 @@ def test_execute_success_returns_workspace_runtime_snapshot() -> None:
             ),
         ),
     )
-    runtime = FakeWorkspaceRuntime(
-        WorkspaceRuntimeSnapshot(
-            session=session,
-            definition=definition,
-            status=WorkspaceStatus.READY,
-        )
+    usecase, repository, runtime = _usecase(
+        session,
+        WorkspaceRuntimeSnapshot(session=session, definition=definition, status=WorkspaceStatus.READY),
     )
-    usecase = GetWorkspace(runtime)
 
     output = usecase.execute(GetWorkspaceInput(workspace_session_id=WORKSPACE_SESSION_ID))
 
+    assert repository.received_workspace_session_ids == [WORKSPACE_SESSION_ID]
     assert runtime.received_workspace_session_ids == [WORKSPACE_SESSION_ID]
     assert output == GetWorkspaceOutput(
         session_id=WORKSPACE_SESSION_ID,
@@ -95,12 +142,29 @@ def test_execute_success_returns_workspace_runtime_snapshot() -> None:
 
 
 def test_execute_failure_raises_when_workspace_does_not_exist() -> None:
-    """Runtimeに対象Sessionが存在しない場合は明示的な例外を返すことを確認する。"""
-    runtime = FakeWorkspaceRuntime(None)
-    usecase = GetWorkspace(runtime)
+    """永続化されたSessionがない場合はRuntimeを呼ばず例外を返すことを確認する。"""
+    usecase, repository, runtime = _usecase(None, None)
 
     with pytest.raises(WorkspaceNotFoundError) as exception_info:
         usecase.execute(GetWorkspaceInput(workspace_session_id=WORKSPACE_SESSION_ID))
 
-    assert runtime.received_workspace_session_ids == [WORKSPACE_SESSION_ID]
+    assert repository.received_workspace_session_ids == [WORKSPACE_SESSION_ID]
+    assert runtime.received_workspace_session_ids == []
+    assert exception_info.value.workspace_session_id == WORKSPACE_SESSION_ID
+
+
+def test_execute_failure_rejects_expired_workspace_before_runtime_lookup() -> None:
+    """期限切れSessionはRuntimeを呼ばず例外を返すことを確認する。"""
+    session = WorkspaceSession(
+        id=WORKSPACE_SESSION_ID,
+        definition_id=WORKSPACE_DEFINITION_ID,
+        expires_at=NOW,
+    )
+    usecase, repository, runtime = _usecase(session, None)
+
+    with pytest.raises(WorkspaceNotFoundError) as exception_info:
+        usecase.execute(GetWorkspaceInput(workspace_session_id=WORKSPACE_SESSION_ID))
+
+    assert repository.received_workspace_session_ids == [WORKSPACE_SESSION_ID]
+    assert runtime.received_workspace_session_ids == []
     assert exception_info.value.workspace_session_id == WORKSPACE_SESSION_ID

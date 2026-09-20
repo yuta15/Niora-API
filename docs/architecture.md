@@ -18,8 +18,7 @@ flowchart LR
             Frontend[フロントエンド]
             API[Niora API]
             Database[(MySQL 9.7 LTS)]
-            ApplyJob[Workspace Apply Job]
-            Reconcile[Workspace Reconcile CronJob / Job]
+            Cleanup[Workspace Cleanup CronJob]
         end
 
         subgraph WorkspaceNS[ns-niora-workspaces]
@@ -36,13 +35,10 @@ flowchart LR
 
     User -->|HTTP / WebSocket| Frontend
     Frontend --> API
-    API -->|desired stateの保存 / 取得| Database
-    API -->|Job起動 / 状態確認 / exec| K3sAPI
-    K3sAPI --> ApplyJob
-    ApplyJob -->|desired stateの取得| Database
-    ApplyJob -->|適用 / 観測 / 削除| K3sAPI
-    Reconcile -->|未収束Workspace / 期限の確認| Database
-    Reconcile -->|適用 / 観測 / 削除| K3sAPI
+    API -->|Sessionの保存 / 取得 / 削除| Database
+    API -->|同期作成 / 削除 / 観測 / exec| K3sAPI
+    Cleanup -->|期限の確認| Database
+    Cleanup -->|削除| K3sAPI
     K3sAPI --> WorkspaceSessionAUbuntu
     K3sAPI --> WorkspaceSessionADatabase
     K3sAPI --> WorkspaceSessionBUbuntu
@@ -51,7 +47,7 @@ flowchart LR
     WorkspaceSessionBUbuntu --> Internet
 ```
 
-全体をモジュラーモノリスとして構成し、API、Workspace Apply Job、Reconcile Jobは同じコードベースとビルド成果物を
+全体をモジュラーモノリスとして構成し、APIとWorkspace Cleanup CronJobは同じコードベースとビルド成果物を
 利用します。詳細は[ADR 0003](adr/0003-use-modular-monolith.md)を参照してください。
 
 ## モジュール境界
@@ -96,9 +92,9 @@ Workspace Domainは、実行環境の定義を不変なWorkspaceDefinition、Def
 `scripts/seed_system_catalog.py`の`WorkspacePresetCatalogLoader`が構造を検証して`WorkspacePresetCatalog`へ変換します。
 `WorkspacePresetCatalogDiffer`がDatabaseとの差分をinsert・unchangedへ分類し、`WorkspacePresetCatalogApplier`がTable Modelへ直接seedします。
 Domainは具体的なsystem presetの値を保持しません。
-ApplicationはWorkspaceDefinitionとWorkspaceSessionの永続化、Job起動を調整します。AdapterはMySQLへの永続化、k3sへの適用、
-接続方式を実装します。詳細は
-[ADR 0014](adr/0014-persist-workspace-desired-state-and-apply-with-jobs.md)を参照してください。
+ApplicationはWorkspaceDefinitionとWorkspaceSessionの永続化、およびRuntimeへの同期操作を調整します。AdapterはMySQLへの永続化、
+k3sへの操作、接続方式を実装します。詳細は
+[ADR 0016](adr/0016-apply-workspace-synchronously-and-clean-up-expired-resources.md)を参照してください。
 
 API AdapterにはFastAPIを使用します。APIのバージョン、ドメインrouter、Schema、依存性注入の構成は
 [API実装規約](api.md)に従います。
@@ -120,7 +116,7 @@ Chapterは対応する実行環境をWorkspacePresetKeyで参照します。Work
 WorkspaceDefinitionを組として保持するDomain Modelです。どのPresetを、どのKeyとDefinitionで提供するかは、開発者がWorkspace固有JSON
 Catalogへ記述します。WorkspacePresetCatalogLoaderは、Catalogの各項目をWorkspacePresetへ変換して検証済みCatalogを作成します。
 Catalogの項目を省略しても、Databaseに登録済みの項目を削除する意味にはなりません。
-初期登録は`make migrate`後、APIまたはJobの起動前に`make seed-system-catalog`を単独実行します。seed scriptは個別のPreset定義や
+初期登録は`make migrate`後、APIまたはCleanup CronJobの起動前に`make seed-system-catalog`を単独実行します。seed scriptは個別のPreset定義や
 Catalog件数に依存せず、検証済みCatalogからPresetを取得します。
 
 Preset Key、WorkspaceDefinition、および対応表はCatalogから読み込んだ不変なDomainデータとして扱います。
@@ -129,7 +125,7 @@ seed scriptはCatalogから全Presetを取得し、Definition、Component、Term
 Workspace作成時はDomainのProviderやCatalogではなくMySQLに保存した対応だけを利用します。Preset入力Model、外部からPresetを取得するPort、
 およびPresetごとのApplication登録入力は設けません。
 
-初期登録はSchema Migration後、APIまたはJobの起動前に`make seed-system-catalog`を単独実行します。
+初期登録はSchema Migration後、APIまたはCleanup CronJobの起動前に`make seed-system-catalog`を単独実行します。
 Alembicのdata migrationやApplication起動時の自動seedには含めず、Textbookの開発データ投入とも分離します。未登録値は追加し、
 完全一致する再登録は何も変更せず、既存値との不一致はCatalog全体をrollbackします。Catalogから省略した項目は削除しません。
 
@@ -137,14 +133,14 @@ Alembicのdata migrationやApplication起動時の自動seedには含めず、Te
 Definition IDを関連付けます。供給元ごとの入力形式は共通化せず、保存後は同じWorkspaceDefinition Repositoryを利用します。
 
 WorkspaceDefinition、WorkspacePresetKeyからDefinition IDへの対応、およびWorkspaceSessionをMySQLへ永続化します。
-WorkspaceDefinitionとWorkspaceSessionを実行環境のdesired stateの正とし、k3s上のリソースをobserved stateの正とします。
-Podなどの実行状態をMySQLへ状態の正として複製せず、WorkspaceDefinitionまたはWorkspaceSessionをk3s Metadataから復元しません。
-k3s MetadataはMySQL上のdesired stateと実行中リソースの識別および照合にのみ使用します。詳細は
-[ADR 0014](adr/0014-persist-workspace-desired-state-and-apply-with-jobs.md)を参照してください。
+WorkspaceSessionはApplicationがRuntime操作前に保存するmetadataであり、k3s上の実行環境との一致を保証しません。k3s上のリソースを
+observed stateの正とし、Podなどの実行状態をMySQLへ複製しません。WorkspaceDefinitionまたはWorkspaceSessionをk3s Metadataから
+復元せず、k3s Metadataは実行中リソースの識別と期限Cleanupにのみ使用します。詳細は
+[ADR 0016](adr/0016-apply-workspace-synchronously-and-clean-up-expired-resources.md)を参照してください。
 
 WorkspaceSessionは作成時に解決したWorkspaceDefinitionのDefinition IDを不変に保持します。WorkspacePresetKeyからDefinition IDへの
-対応はWorkspace作成時のDefinition選択にだけ使用し、作成済みSessionの解決には使用しません。有効期限内のWorkspaceSessionが
-MySQLに存在する場合は実行環境を存在させ、不在または期限切れの場合は実行環境を存在させないdesired stateとして扱います。
+対応はWorkspace作成時のDefinition選択にだけ使用し、作成済みSessionの解決には使用しません。Sessionが存在してもRuntime作成が
+成功したことは保証せず、Runtimeの欠損をAPIが再作成しません。
 
 WorkspaceDefinitionは1件以上のWorkspaceComponentで構成し、各Componentは識別子、OCI Image参照、任意の起動コマンド、
 任意のTerminal exec接続点を持ちます。OCI Image参照はTagまたはDigestへ制限せず、実際に展開されたImage IDやDigestは
@@ -154,22 +150,16 @@ k3sからobserved stateとして取得します。
 
 | Namespace | 配置するもの |
 | --- | --- |
-| `ns-niora-service` | フロントエンド、Niora API、MySQL、Workspace Apply Job、Reconcile CronJob / Job |
+| `ns-niora-service` | フロントエンド、Niora API、MySQL、Workspace Cleanup CronJob |
 | `ns-niora-workspaces` | WorkspaceSessionに対応する実行環境のPod群と付随するリソース |
 
 すべてのWorkspaceSessionに対応する実行環境は`ns-niora-workspaces`を共有し、LabelとNetworkPolicyで相互の通信を分離します。詳細は[ADR 0006](adr/0006-share-k3s-workspace-namespace.md)を参照してください。
 
 APIから呼び出されたApplicationは、MySQL実装のResolverを通してPresetKeyに対応するDefinition IDを解決し、そのIDを持つ
-WorkspaceSessionをMySQLへCommitした後、WorkspaceSession IDを
-指定してApply Jobの起動を要求します。Apply JobはMySQLからdesired stateを取得し、Kubernetes Infrastructureを通して
-WorkspaceSessionに対応する1つ以上のPodと必要なService、NetworkPolicyを生成してk3sへ適用します。WorkspaceSession IDと
-リソースごとの論理キーから決定的なリソース名を生成し、k3sのobserved stateとの差分へ冪等に収束させます。
-
-リソース構成をWorkspacePresetKeyから解決する順序付きStepは使用しません。WorkspaceDefinitionとWorkspaceSessionから
-期待するリソース集合を決定的に生成し、途中失敗時は同じdesired stateと最新のobserved stateからリソース単位で再試行します。
-定期Jobは未収束のWorkspaceを再適用します。明示的な終了ではWorkspaceSessionをMySQLから削除し、期限切れは`expires_at`から
-判定します。いずれもMySQL上のdesired stateを先に確定し、同じJob実行方式でk3s上のリソース削除へ収束させます。詳細は
-[ADR 0014](adr/0014-persist-workspace-desired-state-and-apply-with-jobs.md)を参照してください。
+WorkspaceSessionをMySQLへCommitした後、SessionとDefinitionを指定してRuntimeへ同期作成を一度だけ要求します。Runtime作成が
+失敗してもSessionや作成途中のリソースをAPIが補償・再試行・再作成しません。明示的な終了では、期限内のSessionに限りRuntime削除を
+一度だけ要求し、成功後にSessionをMySQLから削除します。期限切れSessionはCleanup CronJobが回収します。詳細は
+[ADR 0016](adr/0016-apply-workspace-synchronously-and-clean-up-expired-resources.md)を参照してください。
 
 ブラウザとNiora APIの間はWebSocket、Niora APIと実行環境の間はk3s APIのPod `exec`で接続します。Connectionが切断されても
 WorkspaceSessionと実行環境は維持します。詳細は[ADR 0007](adr/0007-run-workspaces-as-pods.md)を参照してください。
