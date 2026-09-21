@@ -21,7 +21,7 @@ ApplicationはWorkspaceSessionごとに次のresourceを作成する。
 | CiliumNetworkPolicy | `cnp-ws-<session-id>` | Workspaceの通信を分離する |
 | Pod | `pod-ws-<session-id>-<component-key-hash>` | WorkspaceComponentを実行する |
 
-WorkspaceDefinitionでネットワーク接続が必要な場合だけServiceを追加する。Serviceは標準resourceに含めない。
+Serviceは現時点のスコープ外とする。
 
 ### Metadataと命名
 
@@ -55,6 +55,7 @@ CiliumのDeny Policyの優先順位により、CIDRへの明示的なDenyは`wor
 - 期限切れWorkspaceを回収するCronJob
 - Podの追加security hardening
 - PodおよびNamespace単位のResourceQuota、LimitRange、requests、limits
+- Service
 - 予約ルールを利用するNiora APIからWorkspace Podへの直接通信
 
 ## 影響
