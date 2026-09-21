@@ -8,17 +8,16 @@ Niora APIのデプロイ方法と運用手順を記録します。
 
 | Namespace | Workload |
 | --- | --- |
-| `ns-niora-service` | フロントエンド、Niora API、MySQL、期限切れ削除CronJob |
-| `ns-niora-workspaces` | Workspaceを構成するPod群と付随するリソース |
+| `ns-niora-service` | フロントエンド、Niora API、MySQL |
+| `ns-niora-ws` | Workspaceを構成するPod群とCiliumNetworkPolicy |
 
 ## Database Migration
 
-APIと期限切れ削除CronJobの更新前に、同じApplication Imageを使用する単発のMigration Jobで
+APIの更新前に、同じApplication Imageを使用する単発のMigration Jobで
 `uv run alembic upgrade head`を実行します。Migrationが成功した場合だけ後続Workloadを更新し、Application起動時には
 Migrationを実行しません。
 
-Migration JobはDDL権限を持つ専用MySQL Accountを使用します。APIと期限切れ削除CronJobは、実行に必要なDML権限だけを持つ
-別のAccountを使用します。
+Migration JobはDDL権限を持つ専用MySQL Accountを使用します。APIは、実行に必要なDML権限だけを持つ別のAccountを使用します。
 
 ## 設定とSecret
 
@@ -34,7 +33,7 @@ Secretの値はリポジトリ内のManifestへ記載せず、デプロイ前に
 - Migration Jobの起動主体、承認、排他制御、Timeout、再実行、および後続Workloadを更新するまでのリリース手順
 - Production DatabaseのCurrent Revisionが想定と異なる場合にMigrationとデプロイを中止する仕組み
 - 稼働中の旧ApplicationとMigration後のSchemaが共存する期間のデプロイ順序、および互換性を維持できない変更の適用方法
-- CronJobの実行間隔と完了したJobの保持期間
+- Workspace Cleanup CronJobの実行間隔、完了したJobの保持期間、および必要な権限
 - ログとモニタリング
 - Migration失敗時に書き込み停止、再実行、前方修正、Backupからの復元を選択する基準と障害対応手順
 - リリースごとにApplicationとDatabaseの切り戻し可能範囲、切り戻し不能になる時点、復旧手順を策定して検証する方法

@@ -1,5 +1,9 @@
 # 0016: Workspaceを同期適用し期限切れリソースを回収する
 
+> **後続の決定:** Workspaceの標準リソースとMetadataの具体的な契約は
+> [ADR 0017](0017-define-standard-workspace-k3s-resources.md)で定める。期限Cleanupの設計と実装は後続Issueで扱い、
+> 本ADRのCleanupに関する詳細な決定は現時点の実装対象としない。
+
 ## 背景
 
 Workspaceは複数のk3sリソースで構成され、作成や削除の途中で失敗することがある。v0.0.1ではApply Job、未収束Workspaceの定期再適用、full reconcile、outbox/dispatcher、driftや欠損の修復を行わず、APIからRuntimeへ同期的に一度操作を依頼する。Database transactionとk3s I/Oは分離し、操作失敗後に残るSessionまたはリソースは有効期限後の共通Cleanupで回収できるようにする。

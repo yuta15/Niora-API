@@ -6,7 +6,10 @@
 >
 > **さらに後続の決定:** ADR 0014のdesired state、Job適用、定期reconcileの決定、および本ADRのMetadataと期限Cleanupの詳細は
 > [ADR 0016](0016-apply-workspace-synchronously-and-clean-up-expired-resources.md)で置き換えた。Database Sessionとk3s Metadataの期限を
-> 安全側に照合して回収する。共通CronJob、同時実行を許可しないこと、k3sをobserved stateの正とすること、Pod構成、およびPod execは継続する。
+> 安全側に照合して回収する。k3sをobserved stateの正とすること、Pod構成、およびPod execは継続する。
+>
+> **さらに後続の決定:** Workspaceの標準リソース、Metadata、および期限Cleanupを今回の対象外とする判断は
+> [ADR 0017](0017-define-standard-workspace-k3s-resources.md)で定める。Pod構成、k3sをobserved stateの正とすること、およびPod execは継続する。
 
 ## 背景
 
