@@ -18,3 +18,4 @@
 | 0014 | Workspaceのdesired stateを永続化しJobでk3sへ収束させる | [0014-persist-workspace-desired-state-and-apply-with-jobs.md](0014-persist-workspace-desired-state-and-apply-with-jobs.md) |
 | 0015 | Workspace system presetをJSON CatalogとしてGit管理する | [0015-manage-workspace-system-presets-as-json-catalog.md](0015-manage-workspace-system-presets-as-json-catalog.md) |
 | 0016 | Workspaceを同期適用し期限切れリソースを回収する | [0016-apply-workspace-synchronously-and-clean-up-expired-resources.md](0016-apply-workspace-synchronously-and-clean-up-expired-resources.md) |
+| 0017 | Workspaceの標準k3sリソースを定義する | [0017-define-standard-workspace-k3s-resources.md](0017-define-standard-workspace-k3s-resources.md) |

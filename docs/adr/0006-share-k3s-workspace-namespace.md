@@ -1,5 +1,8 @@
 # 0006: k3sのNamespaceをサービス用とWorkspace用に分離する
 
+> **後続の決定:** Workspace Namespaceの名称、共通リソースの管理方法、およびCiliumNetworkPolicyの標準は
+> [ADR 0017](0017-define-standard-workspace-k3s-resources.md)で定める。本ADRのNamespace分離と共有Namespaceを採用する判断は継続する。
+
 ## 背景
 
 Niora自身と、利用者が起動するWorkspaceを同じk3sクラスタ上で稼働させる。

@@ -18,10 +18,9 @@ flowchart LR
             Frontend[フロントエンド]
             API[Niora API]
             Database[(MySQL 9.7 LTS)]
-            Cleanup[Workspace Cleanup CronJob]
         end
 
-        subgraph WorkspaceNS[ns-niora-workspaces]
+        subgraph WorkspaceNS[ns-niora-ws]
             subgraph WorkspaceSessionA[WorkspaceSession A]
                 WorkspaceSessionAUbuntu[Ubuntu Pod]
                 WorkspaceSessionADatabase[Database Pod]
@@ -37,8 +36,6 @@ flowchart LR
     Frontend --> API
     API -->|Sessionの保存 / 取得 / 削除| Database
     API -->|同期作成 / 削除 / 観測 / exec| K3sAPI
-    Cleanup -->|期限の確認| Database
-    Cleanup -->|削除| K3sAPI
     K3sAPI --> WorkspaceSessionAUbuntu
     K3sAPI --> WorkspaceSessionADatabase
     K3sAPI --> WorkspaceSessionBUbuntu
@@ -150,15 +147,15 @@ k3sからobserved stateとして取得します。
 
 | Namespace | 配置するもの |
 | --- | --- |
-| `ns-niora-service` | フロントエンド、Niora API、MySQL、Workspace Cleanup CronJob |
-| `ns-niora-workspaces` | WorkspaceSessionに対応する実行環境のPod群と付随するリソース |
+| `ns-niora-service` | フロントエンド、Niora API、MySQL |
+| `ns-niora-ws` | WorkspaceSessionに対応する実行環境のPod群とCiliumNetworkPolicy |
 
-すべてのWorkspaceSessionに対応する実行環境は`ns-niora-workspaces`を共有し、LabelとNetworkPolicyで相互の通信を分離します。詳細は[ADR 0006](adr/0006-share-k3s-workspace-namespace.md)を参照してください。
+すべてのWorkspaceSessionに対応する実行環境は`ns-niora-ws`を共有し、LabelとCiliumNetworkPolicyで相互の通信を分離します。NamespaceとServiceAccountはManifestで管理し、ApplicationはWorkspace固有のPodとCiliumNetworkPolicyだけを作成します。標準リソースの名前とMetadataは[ADR 0017](adr/0017-define-standard-workspace-k3s-resources.md)を参照してください。
 
 APIから呼び出されたApplicationは、MySQL実装のResolverを通してPresetKeyに対応するDefinition IDを解決し、そのIDを持つ
 WorkspaceSessionをMySQLへCommitした後、SessionとDefinitionを指定してRuntimeへ同期作成を一度だけ要求します。Runtime作成が
 失敗してもSessionや作成途中のリソースをAPIが補償・再試行・再作成しません。明示的な終了では、期限内のSessionに限りRuntime削除を
-一度だけ要求し、成功後にSessionをMySQLから削除します。期限切れSessionはCleanup CronJobが回収します。詳細は
+一度だけ要求し、成功後にSessionをMySQLから削除します。期限切れリソースの回収は後続で設計・実装します。詳細は
 [ADR 0016](adr/0016-apply-workspace-synchronously-and-clean-up-expired-resources.md)を参照してください。
 
 ブラウザとNiora APIの間はWebSocket、Niora APIと実行環境の間はk3s APIのPod `exec`で接続します。Connectionが切断されても
